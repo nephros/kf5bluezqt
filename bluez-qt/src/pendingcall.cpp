@@ -24,12 +24,14 @@
 #include "obextransfer.h"
 #include "obextransfer_p.h"
 #include "obexfiletransferentry.h"
+#include "mediatransportsocketinfo.h"
 #include "bluezqt_dbustypes.h"
 #include "debug.h"
 
 #include <QTimer>
 #include <QDBusPendingReply>
 #include <QDBusPendingCallWatcher>
+#include <QDBusUnixFileDescriptor>
 
 namespace BluezQt
 {
@@ -84,6 +86,7 @@ public:
     void processObjectPathReply(const QDBusPendingReply<QDBusObjectPath> &reply);
     void processFileTransferListReply(const QDBusPendingReply<QVariantMapList> &reply);
     void processTransferWithPropertiesReply(const QDBusPendingReply<QDBusObjectPath, QVariantMap> &reply);
+    void processMediaTransportSocketInfoReply(const QDBusPendingReply<QDBusUnixFileDescriptor, quint16, quint16> &reply);
     void processError(const QDBusError &m_error);
 
     void emitFinished();
@@ -134,6 +137,10 @@ void PendingCallPrivate::processReply(QDBusPendingCallWatcher *call)
 
     case PendingCall::ReturnTransferWithProperties:
         processTransferWithPropertiesReply(*call);
+        break;
+
+    case PendingCall::ReturnMediaTransportSocketInfo:
+        processMediaTransportSocketInfoReply(*call);
         break;
 
     default:
@@ -194,6 +201,17 @@ void PendingCallPrivate::processTransferWithPropertiesReply(const QDBusPendingRe
     transfer->d->q = transfer.toWeakRef();
     transfer->d->m_suspendable = true;
     m_value.append(QVariant::fromValue(transfer));
+}
+
+void PendingCallPrivate::processMediaTransportSocketInfoReply(const QDBusPendingReply<QDBusUnixFileDescriptor, quint16, quint16> &reply)
+{
+    processError(reply.error());
+    if (reply.isError()) {
+        return;
+    }
+
+    MediaTransportSocketInfo transportInfo(reply.argumentAt<0>().fileDescriptor(), reply.argumentAt<1>(), reply.argumentAt<2>());
+    m_value.append(QVariant::fromValue(transportInfo));
 }
 
 void PendingCallPrivate::processError(const QDBusError &error)

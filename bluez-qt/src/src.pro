@@ -23,6 +23,7 @@ system(qdbusxml2cpp -c BluezAgentManager -p bluezagentmanager1.h:bluezagentmanag
 system(qdbusxml2cpp -c BluezProfileManager -p bluezprofilemanager1.h:bluezprofilemanager1.cpp $$XML_DIR/org.bluez.ProfileManager1.xml)
 system(qdbusxml2cpp -c BluezDevice -p bluezdevice1.h:bluezdevice1.cpp $$XML_DIR/org.bluez.Device1.xml)
 system(qdbusxml2cpp -c BluezMediaPlayer -p bluezmediaplayer1.h:bluezmediaplayer1.cpp $$XML_DIR/org.bluez.MediaPlayer1.xml)
+system(qdbusxml2cpp -c BluezMediaTransport -p bluezmediatransport1.h:bluezmediatransport1.cpp $$XML_DIR/org.bluez.MediaTransport1.xml)
 system(qdbusxml2cpp -c ObexAgentManager -p obexagentmanager1.h:obexagentmanager1.cpp $$XML_DIR/org.bluez.obex.AgentManager1.xml)
 system(qdbusxml2cpp -c ObexClient -p obexclient1.h:obexclient1.cpp $$XML_DIR/org.bluez.obex.Client1.xml)
 system(qdbusxml2cpp -c ObexTransfer -p obextransfer1.h:obextransfer1.cpp $$XML_DIR/org.bluez.obex.Transfer1.xml)
@@ -38,6 +39,7 @@ DBUS_SOURCES += \
     bluezprofilemanager1.cpp \
     bluezdevice1.cpp \
     bluezmediaplayer1.cpp \
+    bluezmediatransport1.cpp \
     obexagentmanager1.cpp \
     obexclient1.cpp \
     obextransfer1.cpp \
@@ -53,6 +55,7 @@ DBUS_HEADERS += \
     bluezprofilemanager1.h \
     bluezdevice1.h \
     bluezmediaplayer1.h \
+    bluezmediatransport1.h \
     obexagentmanager1.h \
     obexclient1.h \
     obextransfer1.h \
@@ -72,6 +75,8 @@ SOURCES += \
     mediaplayer.cpp \
     mediaplayer_p.cpp \
     mediaplayertrack.cpp \
+    mediatransport.cpp \
+    mediatransport_p.cpp \
     devicesmodel.cpp \
     job.cpp \
     initmanagerjob.cpp \
@@ -103,6 +108,7 @@ PUBLIC_HEADERS += \
     input.h \
     mediaplayer.h \
     mediaplayertrack.h \
+    mediatransport.h \
     devicesmodel.h \
     job.h \
     initmanagerjob.h \
@@ -131,6 +137,7 @@ HEADERS += \
     job_p.h \
     manager_p.h \
     mediaplayer_p.h \
+    mediatransport_p.h \
     obexmanager_p.h \
     obexsession_p.h \
     obextransfer_p.h \

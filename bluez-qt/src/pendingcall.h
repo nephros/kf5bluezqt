@@ -178,7 +178,8 @@ private:
         ReturnString,
         ReturnObjectPath,
         ReturnFileTransferList,
-        ReturnTransferWithProperties
+        ReturnTransferWithProperties,
+        ReturnMediaTransportSocketInfo
     };
 
     explicit PendingCall(const QDBusPendingCall &call, ReturnType type, QObject *parent = Q_NULLPTR);
@@ -191,6 +192,7 @@ private:
     friend class Adapter;
     friend class Device;
     friend class MediaPlayer;
+    friend class MediaTransport;
     friend class ObexManager;
     friend class ObexTransfer;
     friend class ObexSession;
