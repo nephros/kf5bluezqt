@@ -77,6 +77,7 @@ SOURCES += \
     mediaplayertrack.cpp \
     mediatransport.cpp \
     mediatransport_p.cpp \
+    mediatransportsocketinfo.cpp \
     devicesmodel.cpp \
     job.cpp \
     initmanagerjob.cpp \
@@ -109,6 +110,7 @@ PUBLIC_HEADERS += \
     mediaplayer.h \
     mediaplayertrack.h \
     mediatransport.h \
+    mediatransportsocketinfo.h \
     devicesmodel.h \
     job.h \
     initmanagerjob.h \
