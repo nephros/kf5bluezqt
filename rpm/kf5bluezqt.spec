@@ -4,7 +4,7 @@ Version:    5.24.0
 Release:    1
 Group:      System/Libraries
 License:    LGPLv2.1
-URL:        git://anongit.kde.org/bluez-qt.git
+URL:        https://git.merproject.org/mer-core/kf5bluezqt
 Source0:    %{name}-%{version}.tar.bz2
 
 BuildRequires:  pkgconfig(Qt5Core)
