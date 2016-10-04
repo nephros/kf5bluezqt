@@ -14,7 +14,7 @@ BuildRequires:  pkgconfig(Qt5Qml)
 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
-Requires: bluez < 5.0
+Requires: bluez
 Requires: obexd
 
 %description
