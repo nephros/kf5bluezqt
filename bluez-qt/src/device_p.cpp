@@ -32,14 +32,23 @@
 #include "utils.h"
 #include "macros.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "adapter_p.h"
+#endif
+
 namespace BluezQt
 {
 
 static const qint16 INVALID_RSSI = -32768; // qint16 minimum
 
 DevicePrivate::DevicePrivate(const QString &path, const QVariantMap &properties, const AdapterPtr &adapter)
-    : QObject()
+    : QObject()    
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_dbusProperties(0)
+#else
+    , m_inputInterface(0)
+    , m_audioInterface(0)
+#endif
     , m_deviceClass(0)
     , m_appearance(0)
     , m_paired(false)
@@ -57,12 +66,17 @@ DevicePrivate::DevicePrivate(const QString &path, const QVariantMap &properties,
 
 void DevicePrivate::init(const QVariantMap &properties)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_dbusProperties = new DBusProperties(Strings::orgBluez(), m_bluezDevice->path(),
                                           DBusConnection::orgBluez(), this);
 
     // QueuedConnection is important here - see AdapterPrivate::initProperties
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &DevicePrivate::propertiesChanged, Qt::QueuedConnection);
+#else
+    connect(m_bluezDevice, &BluezDevice::PropertyChanged,
+            this, &DevicePrivate::devicePropertyChanged);
+#endif
 
     // Init properties
     m_address = properties.value(QStringLiteral("Address")).toString();
@@ -85,6 +99,7 @@ void DevicePrivate::init(const QVariantMap &properties)
     }
 }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &interfaces)
 {
     bool changed = false;
@@ -113,7 +128,9 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
         Q_EMIT q.data()->deviceChanged(q.toStrongRef());
     }
 }
+#endif
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void DevicePrivate::interfacesRemoved(const QString &path, const QStringList &interfaces)
 {
     Q_UNUSED(path)
@@ -139,17 +156,26 @@ void DevicePrivate::interfacesRemoved(const QString &path, const QStringList &in
         Q_EMIT q.data()->deviceChanged(q.toStrongRef());
     }
 }
+#endif
 
 QDBusPendingReply<> DevicePrivate::setDBusProperty(const QString &name, const QVariant &value)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return m_dbusProperties->Set(Strings::orgBluezDevice1(), name, QDBusVariant(value));
+#else
+    return m_bluezDevice->SetProperty(name, QDBusVariant(value));
+#endif
 }
 
 void DevicePrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezDevice1()) {
         return;
     }
+#else
+    Q_UNUSED(interface)
+#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -232,5 +258,24 @@ void DevicePrivate::classPropertyChanged(quint32 value)
         Q_EMIT q.data()->typeChanged(q.data()->type());
     }
 }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+QDBusPendingReply<QDBusObjectPath> DevicePrivate::pair(AdapterPtr adapter)
+{
+    Q_ASSERT(adapter);
+    return adapter->d->createPairedDevice(m_address);
+}
+
+QDBusPendingReply<void> DevicePrivate::cancelPairing(AdapterPtr adapter)
+{
+    Q_ASSERT(adapter);
+    return adapter->d->cancelDeviceCreation(m_address);
+}
+
+void DevicePrivate::devicePropertyChanged(const QString &property, const QDBusVariant &value)
+{
+    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.Device"), this, property, value.variant());
+}
+#endif
 
 } // namespace BluezQt

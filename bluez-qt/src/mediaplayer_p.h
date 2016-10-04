@@ -26,14 +26,22 @@
 #include <QObject>
 
 #include "mediaplayer.h"
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "bluezmediaplayer1.h"
 #include "dbusproperties.h"
+#else
+#include "bluezmediaplayer.h"
+#endif
 
 namespace BluezQt
 {
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::bluez::MediaPlayer1 BluezMediaPlayer;
 typedef org::freedesktop::DBus::Properties DBusProperties;
+#else
+typedef org::bluez::MediaPlayer BluezMediaPlayer;
+#endif
 
 class MediaPlayerPrivate : public QObject
 {
@@ -49,9 +57,15 @@ public:
 
     MediaPlayerTrack variantToTrack(const QVariant &variant) const;
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    void mediaPlayerPropertyChanged(const QString &property, const QDBusVariant &value);
+#endif
+
     QWeakPointer<MediaPlayer> q;
     BluezMediaPlayer *m_bluezMediaPlayer;
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     DBusProperties *m_dbusProperties;
+#endif
 
     QString m_name;
     MediaPlayer::Equalizer m_equalizer;

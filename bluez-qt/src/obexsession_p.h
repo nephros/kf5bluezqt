@@ -23,14 +23,20 @@
 #ifndef BLUEZQT_OBEXSESSION_P_H
 #define BLUEZQT_OBEXSESSION_P_H
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "obexsession1.h"
+#else
+#include "obexsession.h"
+#endif
 
 namespace BluezQt
 {
 
 class ObexSession;
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::bluez::obex::Session1 BluezSession;
+#endif
 
 class ObexSessionPrivate : public QObject
 {
@@ -42,7 +48,13 @@ public:
     void init(const QVariantMap &properties);
 
     QWeakPointer<ObexSession> q;
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     BluezSession *m_bluezSession;
+#else
+    QString m_sessionPath;
+    QString m_oppTransferPath;
+    QVariantMap m_properties;
+#endif
 
     QString m_source;
     QString m_destination;

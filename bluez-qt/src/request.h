@@ -103,6 +103,10 @@ public:
      */
     void cancel() const;
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    void setObjectPushTransferPath(const QString &transferPath);
+#endif
+
 private:
     explicit Request(RequestOriginatingType type, const QDBusMessage &message);
 
@@ -127,6 +131,10 @@ public:
     void accept() const;
     void reject() const;
     void cancel() const;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    void setObjectPushTransferPath(const QString &transferPath);
+#endif
 
 private:
     explicit Request(RequestOriginatingType type, const QDBusMessage &message);

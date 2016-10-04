@@ -28,7 +28,9 @@
 namespace BluezQt
 {
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::freedesktop::DBus::Properties DBusProperties;
+#endif
 
 static Input::ReconnectMode stringToReconnectMode(const QString &mode)
 {
@@ -45,11 +47,13 @@ static Input::ReconnectMode stringToReconnectMode(const QString &mode)
 InputPrivate::InputPrivate(const QString &path, const QVariantMap &properties)
     : QObject()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_dbusProperties = new DBusProperties(Strings::orgBluez(), path,
                                           DBusConnection::orgBluez(), this);
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &InputPrivate::propertiesChanged, Qt::QueuedConnection);
+#endif
 
     // Init properties
     m_reconnectMode = stringToReconnectMode(properties.value(QStringLiteral("ReconnectMode")).toString());
@@ -59,9 +63,13 @@ void InputPrivate::propertiesChanged(const QString &interface, const QVariantMap
 {
     Q_UNUSED(invalidated)
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezInput1()) {
         return;
     }
+#else
+    Q_UNUSED(interface)
+#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {

@@ -85,7 +85,11 @@ public:
     void processStringReply(const QDBusPendingReply<QString> &reply);
     void processObjectPathReply(const QDBusPendingReply<QDBusObjectPath> &reply);
     void processFileTransferListReply(const QDBusPendingReply<QVariantMapList> &reply);
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     void processTransferWithPropertiesReply(const QDBusPendingReply<QDBusObjectPath, QVariantMap> &reply);
+#else
+    void processTransferWithPropertiesReply(const QDBusPendingReply<ObexTransferInfo> &reply);
+#endif
     void processMediaTransportSocketInfoReply(const QDBusPendingReply<QDBusUnixFileDescriptor, quint16, quint16> &reply);
     void processError(const QDBusError &m_error);
 
@@ -190,14 +194,23 @@ void PendingCallPrivate::processFileTransferListReply(const QDBusPendingReply<QV
     }
 }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void PendingCallPrivate::processTransferWithPropertiesReply(const QDBusPendingReply<QDBusObjectPath, QVariantMap> &reply)
+#else
+void PendingCallPrivate::processTransferWithPropertiesReply(const QDBusPendingReply<ObexTransferInfo> &reply)
+#endif
 {
     processError(reply.error());
     if (reply.isError()) {
         return;
     }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     ObexTransferPtr transfer = ObexTransferPtr(new ObexTransfer(reply.argumentAt<0>().path(), reply.argumentAt<1>()));
+#else
+    const ObexTransferInfo &info = reply.argumentAt<0>();
+    ObexTransferPtr transfer = ObexTransferPtr(new ObexTransfer(info.first.path(), info.second));
+#endif
     transfer->d->q = transfer.toWeakRef();
     transfer->d->m_suspendable = true;
     m_value.append(QVariant::fromValue(transfer));
@@ -258,6 +271,11 @@ PendingCall::PendingCall(const QDBusPendingCall &call, ReturnType type, QObject 
     , d(new PendingCallPrivate(this))
 {
     qDBusRegisterMetaType<QVariantMapList>();
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    qDBusRegisterMetaType<DeviceServiceMap>();
+    qDBusRegisterMetaType<ObexTransferInfo>();
+#endif
 
     d->m_type = type;
     d->m_watcher = new QDBusPendingCallWatcher(call, this);

@@ -26,12 +26,16 @@
 #include <QObject>
 
 #include "input.h"
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "dbusproperties.h"
+#endif
 
 namespace BluezQt
 {
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::freedesktop::DBus::Properties DBusProperties;
+#endif
 
 class InputPrivate : public QObject
 {
@@ -43,7 +47,9 @@ public:
     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
 
     QWeakPointer<Input> q;
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     DBusProperties *m_dbusProperties;
+#endif
 
     Input::ReconnectMode m_reconnectMode;
 };

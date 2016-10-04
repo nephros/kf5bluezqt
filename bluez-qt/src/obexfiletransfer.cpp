@@ -24,12 +24,20 @@
 #include "pendingcall.h"
 #include "utils.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "obexfiletransfer1.h"
+#else
+#include "bluezobexfiletransfer.h"
+#endif
 
 namespace BluezQt
 {
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::bluez::obex::FileTransfer1 BluezFileTransfer;
+#else
+typedef org::bluez::obex::FileTransfer BluezFileTransfer;
+#endif
 
 class ObexFileTransferPrivate
 {
@@ -42,8 +50,13 @@ ObexFileTransfer::ObexFileTransfer(const QDBusObjectPath &path, QObject *parent)
     : QObject(parent)
     , d(new ObexFileTransferPrivate)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     d->m_bluezFileTransfer = new BluezFileTransfer(Strings::orgBluezObex(), path.path(),
                                                    DBusConnection::orgBluezObex(), this);
+#else
+    d->m_bluezFileTransfer = new BluezFileTransfer(QStringLiteral("org.bluez.obex.client"), path.path(),
+                                                   DBusConnection::orgBluezObex(), this);
+#endif
 }
 
 ObexFileTransfer::~ObexFileTransfer()

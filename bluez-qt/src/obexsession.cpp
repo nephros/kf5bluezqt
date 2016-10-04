@@ -25,14 +25,22 @@
 #include "pendingcall.h"
 #include "utils.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include <QDBusObjectPath>
+#endif
+
 namespace BluezQt
 {
 
 ObexSessionPrivate::ObexSessionPrivate(const QString &path, const QVariantMap &properties)
     : QObject()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_bluezSession = new BluezSession(Strings::orgBluezObex(),
                                       path, DBusConnection::orgBluezObex(), this);
+#else
+    m_sessionPath = path;
+#endif
 
     init(properties);
 }
@@ -44,6 +52,10 @@ void ObexSessionPrivate::init(const QVariantMap &properties)
     m_channel = properties.value(QStringLiteral("Channel")).toUInt();
     m_target = properties.value(QStringLiteral("Target")).toString().toUpper();
     m_root = properties.value(QStringLiteral("Root")).toString();
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    m_oppTransferPath = properties.value(QStringLiteral("org.kde.bluezqt.ObjectPushTransfer")).toString();
+    m_properties = properties;
+#endif
 }
 
 ObexSession::ObexSession(const QString &path, const QVariantMap &properties)
@@ -64,7 +76,11 @@ ObexSessionPtr ObexSession::toSharedPtr() const
 
 QDBusObjectPath ObexSession::objectPath() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return QDBusObjectPath(d->m_bluezSession->path());
+#else
+    return QDBusObjectPath(d->m_sessionPath);
+#endif
 }
 
 QString ObexSession::source() const
@@ -94,7 +110,11 @@ QString ObexSession::root() const
 
 PendingCall *ObexSession::getCapabilities()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezSession->GetCapabilities(), PendingCall::ReturnString, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QString("ObexSession::getCapabilities() not available in BlueZ 4!"), this);
+#endif
 }
 
 } // namespace BluezQt

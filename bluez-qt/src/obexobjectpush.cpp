@@ -24,12 +24,20 @@
 #include "pendingcall.h"
 #include "utils.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "obexobjectpush1.h"
+#else
+#include "bluezobexobjectpush.h"
+#endif
 
 namespace BluezQt
 {
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::bluez::obex::ObjectPush1 BluezObjectPush;
+#else
+typedef org::bluez::obex::ObjectPush BluezObjectPush;
+#endif
 
 class ObexObjectPushPrivate
 {
@@ -42,8 +50,13 @@ ObexObjectPush::ObexObjectPush(const QDBusObjectPath &path, QObject *parent)
     : QObject(parent)
     , d(new ObexObjectPushPrivate)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     d->m_bluezObjectPush = new BluezObjectPush(Strings::orgBluezObex(),
                                                path.path(), DBusConnection::orgBluezObex(), this);
+#else
+    d->m_bluezObjectPush = new BluezObjectPush(QStringLiteral("org.bluez.obex.client"),
+                                               path.path(), DBusConnection::orgBluezObex(), this);
+#endif
 }
 
 ObexObjectPush::~ObexObjectPush()

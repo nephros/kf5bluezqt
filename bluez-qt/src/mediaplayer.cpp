@@ -24,6 +24,10 @@
 #include "mediaplayer_p.h"
 #include "pendingcall.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "debug.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -81,7 +85,12 @@ MediaPlayerPtr MediaPlayer::toSharedPtr() const
 
 QString MediaPlayer::name() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_name;
+#else
+    qCWarning(BLUEZQT) << "MediaPlayer::name() not available in BlueZ 4!";
+    return QString();
+#endif
 }
 
 MediaPlayer::Equalizer MediaPlayer::equalizer() const
@@ -124,7 +133,12 @@ MediaPlayer::Status MediaPlayer::status() const
 
 MediaPlayerTrack MediaPlayer::track() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_track;
+#else
+    qCWarning(BLUEZQT) << "MediaPlayer::track() not available in BlueZ 4!";
+    return MediaPlayerTrack();
+#endif
 }
 
 quint32 MediaPlayer::position() const
@@ -134,37 +148,65 @@ quint32 MediaPlayer::position() const
 
 PendingCall *MediaPlayer::play()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->Play(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::play() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaPlayer::pause()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->Pause(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::pause() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaPlayer::stop()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->Stop(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::stop() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaPlayer::next()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->Next(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::next() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaPlayer::previous()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->Previous(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::previous() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaPlayer::fastForward()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->FastForward(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::fastForward() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaPlayer::rewind()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaPlayer->Rewind(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("MediaPlayer::rewind() not available in BlueZ 4!"), this);
+#endif
 }
 
 } // namespace BluezQt
