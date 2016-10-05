@@ -205,6 +205,10 @@ private:
 
     friend class ObexManagerPrivate;
     friend class InitObexManagerJobPrivate;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    friend class ObexAgentAdaptor;
+#endif
 };
 
 } // namespace BluezQt

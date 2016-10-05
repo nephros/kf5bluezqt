@@ -75,7 +75,9 @@ static MediaPlayer::Status stringToStatus(const QString &status)
 
 MediaPlayerPrivate::MediaPlayerPrivate(const QString &path, const QVariantMap &properties)
     : QObject()
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_dbusProperties(0)
+#endif
     , m_equalizer(MediaPlayer::EqualizerOff)
     , m_repeat(MediaPlayer::RepeatOff)
     , m_shuffle(MediaPlayer::ShuffleOff)
@@ -89,11 +91,16 @@ MediaPlayerPrivate::MediaPlayerPrivate(const QString &path, const QVariantMap &p
 
 void MediaPlayerPrivate::init(const QVariantMap &properties)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_dbusProperties = new DBusProperties(Strings::orgBluez(), m_bluezMediaPlayer->path(),
                                           DBusConnection::orgBluez(), this);
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &MediaPlayerPrivate::propertiesChanged, Qt::QueuedConnection);
+#else
+    connect(m_bluezMediaPlayer, &BluezMediaPlayer::PropertyChanged,
+            this, &MediaPlayerPrivate::mediaPlayerPropertyChanged);
+#endif
 
     // Init properties
     m_name = properties.value(QStringLiteral("Name")).toString();
@@ -107,14 +114,22 @@ void MediaPlayerPrivate::init(const QVariantMap &properties)
 
 QDBusPendingReply<> MediaPlayerPrivate::setDBusProperty(const QString &name, const QVariant &value)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return m_dbusProperties->Set(Strings::orgBluezMediaPlayer1(), name, QDBusVariant(value));
+#else
+    return m_bluezMediaPlayer->SetProperty(name, QDBusVariant(value));
+#endif
 }
 
 void MediaPlayerPrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezMediaPlayer1()) {
         return;
     }
+#else
+    Q_UNUSED(interface)
+#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -164,5 +179,12 @@ MediaPlayerTrack MediaPlayerPrivate::variantToTrack(const QVariant &variant) con
     const QVariantMap &properties = qdbus_cast<QVariantMap>(variant);
     return MediaPlayerTrack(properties);
 }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void MediaPlayerPrivate::mediaPlayerPropertyChanged(const QString &property, const QDBusVariant &value)
+{
+    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.MediaTransport"), this, property, value.variant());
+}
+#endif
 
 } // namespace BluezQt

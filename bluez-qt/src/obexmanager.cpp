@@ -74,6 +74,19 @@ ObexSessionPtr ObexManager::sessionForPath(const QDBusObjectPath &path) const
             return session;
         }
     }
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    // In BlueZ 5, sessionForPath() can be used to find a session for a transfer, as transfer paths
+    // start with the associated session path. This is not the case in BlueZ 4, so mimic this
+    // feature by searching transfer paths here.
+    QString sessionPath = d->sessionForObjectPushTransfer(path);
+    if (!sessionPath.isEmpty()) {
+        if (!d->m_sessions.contains(sessionPath)) {
+            qCWarning(BLUEZQT) << "Cannot find matching session" << sessionPath << "for transfer" << path.path();
+            return ObexSessionPtr();
+        }
+        return d->m_sessions.value(sessionPath);
+    }
+#endif
 
     return ObexSessionPtr();
 }
@@ -97,6 +110,16 @@ PendingCall *ObexManager::registerAgent(ObexAgent *agent)
     if (!d->m_obexAgentManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("ObexManager not operational!"));
     }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    if (!d->m_managerNotifier) {
+        d->m_managerNotifier = new ObexManagerNotifier(d);
+        if (ObexManagerNotifier::connection().registerObject(ObexManagerNotifier::objectPath(), d)
+                && ObexManagerNotifier::connection().registerService(ObexManagerNotifier::service())) {
+            qCDebug(BLUEZQT) << "Registered system OBEX manager notifier";
+        }
+    }
+#endif
 
     new ObexAgentAdaptor(agent, this);
 
@@ -128,8 +151,19 @@ PendingCall *ObexManager::createSession(const QString &destination, const QVaria
         return new PendingCall(PendingCall::InternalError, QStringLiteral("ObexManager not operational!"));
     }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_obexClient->CreateSession(destination, args),
                            PendingCall::ReturnObjectPath, this);
+#else
+    // Manually add/remove sessions as DBusObjectManager is not available in BlueZ 4 to detect when
+    // they are created/removed.
+    PendingCall *call = new PendingCall(d->m_obexClient->CreateSession(destination, args),
+                                        PendingCall::ReturnObjectPath, this);
+    call->setProperty("destination", destination);
+    call->setProperty("args", args);
+    connect(call, &PendingCall::finished, d, &ObexManagerPrivate::createSessionFinished);
+    return call;
+#endif
 }
 
 PendingCall *ObexManager::removeSession(const QDBusObjectPath &session)
@@ -138,8 +172,18 @@ PendingCall *ObexManager::removeSession(const QDBusObjectPath &session)
         return new PendingCall(PendingCall::InternalError, QStringLiteral("ObexManager not operational!"));
     }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_obexClient->RemoveSession(session),
                            PendingCall::ReturnVoid, this);
+#else
+    // Manually add/remove sessions as DBusObjectManager is not available in BlueZ 4 to detect when
+    // they are created/removed.
+    PendingCall *call = new PendingCall(d->m_obexClient->RemoveSession(session),
+                                        PendingCall::ReturnVoid, this);
+    call->setProperty("session", session.path());
+    connect(call, &PendingCall::finished, d, &ObexManagerPrivate::removeSessionFinished);
+    return call;
+#endif
 }
 
 } // namespace BluezQt

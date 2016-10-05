@@ -87,20 +87,35 @@ PendingCall *MediaTransport::setVolume(quint16 volume)
 
 PendingCall *MediaTransport::acquire()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaTransport->Acquire(),
                            PendingCall::ReturnMediaTransportSocketInfo, this);
+#else
+    return new PendingCall(d->m_bluezMediaTransport->Acquire(QStringLiteral("rw")),
+                           PendingCall::ReturnMediaTransportSocketInfo, this);
+#endif
 }
 
 PendingCall *MediaTransport::tryAcquire()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaTransport->TryAcquire(),
                            PendingCall::ReturnMediaTransportSocketInfo, this);
+#else
+    return new PendingCall(PendingCall::NotSupported,
+                           QStringLiteral("MediaTransport::tryAcquire() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *MediaTransport::release()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezMediaTransport->Release(),
                            PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(d->m_bluezMediaTransport->Release(QStringLiteral("rw")),
+                           PendingCall::ReturnVoid, this);
+#endif
 }
 
 } // namespace BluezQt

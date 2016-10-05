@@ -27,14 +27,22 @@
 #include <QStringList>
 
 #include "types.h"
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "bluezadapter1.h"
 #include "dbusproperties.h"
+#else
+#include "bluezadapter.h"
+#endif
 
 namespace BluezQt
 {
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::bluez::Adapter1 BluezAdapter;
 typedef org::freedesktop::DBus::Properties DBusProperties;
+#else
+class ProxyAgent;
+#endif
 
 class AdapterPrivate : public QObject
 {
@@ -51,9 +59,20 @@ public:
     QDBusPendingReply<> setDBusProperty(const QString &name, const QVariant &value);
     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    QDBusPendingReply<QDBusObjectPath> createPairedDevice(const QString &address);
+    QDBusPendingReply<void> cancelDeviceCreation(const QString &address);
+    ProxyAgent *createProxyForAgent(Agent *agent, const QString &proxyAgentPath);
+    void adapterPropertyChanged(const QString &property, const QDBusVariant &value);
+#endif
+
     QWeakPointer<Adapter> q;
     BluezAdapter *m_bluezAdapter;
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     DBusProperties *m_dbusProperties;
+#else
+    Agent *m_pairingAgent;
+#endif
 
     QString m_address;
     QString m_name;
@@ -68,6 +87,11 @@ public:
     QStringList m_uuids;
     QList<DevicePtr> m_devices;
     QString m_modalias;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+Q_SIGNALS:
+    void agentCreated(Agent *agent);
+#endif
 };
 
 } // namespace BluezQt

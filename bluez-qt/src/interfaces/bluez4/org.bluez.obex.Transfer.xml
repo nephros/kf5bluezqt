@@ -1,0 +1,30 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.bluez.obex.Transfer">
+
+    <!-- both services -->
+    <method name="Cancel"/>
+
+    <!-- org.bluez.obex.client service only -->
+    <method name="GetProperties">
+      <arg type="a{sv}" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
+    </method>
+    <signal name="PropertyChanged">
+      <arg type="s"/>
+      <arg type="v"/>
+    </signal>
+    <signal name="Complete"/>
+    <signal name="Error">
+      <arg type="s"/>
+      <arg type="s"/>
+    </signal>
+
+    <!-- org.bluez.obex service only -->
+    <signal name="Progress">
+      <arg type="i"/>
+      <arg type="i"/>
+    </signal>
+
+  </interface>
+</node>

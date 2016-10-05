@@ -28,6 +28,10 @@
 #include "utils.h"
 #include "macros.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include <QMimeDatabase>
+#endif
+
 namespace BluezQt
 {
 
@@ -49,29 +53,72 @@ static ObexTransfer::Status stringToStatus(const QString &status)
 
 ObexTransferPrivate::ObexTransferPrivate(const QString &path, const QVariantMap &properties)
     : QObject()
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_dbusProperties(0)
+#else
+    , m_clientOrigin(path.contains(QStringLiteral("session")))
+#endif
     , m_status(ObexTransfer::Error)
     , m_time(0)
     , m_size(0)
     , m_transferred(0)
     , m_suspendable(false)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_bluezTransfer = new BluezTransfer(Strings::orgBluezObex(), path, DBusConnection::orgBluezObex(), this);
+#else
+    const QString &service = m_clientOrigin ? QStringLiteral("org.bluez.obex.client") : Strings::orgBluezObex();
+    m_bluezTransfer = new BluezTransfer(service, path, DBusConnection::orgBluezObex(), this);
+#endif
 
     if (Instance::obexManager()) {
         connect(Instance::obexManager(), &ObexManager::sessionRemoved, this, &ObexTransferPrivate::sessionRemoved);
     }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     init(properties);
+#else
+    // Ensure the properties contain the non-optional Status and Type properties, which are not
+    // specified for transfers provided by the org.bluez.obex.client service in BlueZ 4. Also,
+    // 'Progress' has been renamed to 'Transferred'.
+    // This doesn't need to be done for transfers provided by the org.bluez.obex service (i.e. from
+    // OBEX agents) as ObexAgentAdaptor already adds these in the AuthorizePush() handler.
+    QVariantMap modifiedProperties = properties;
+    if (m_clientOrigin) {
+        static const QMimeDatabase mimeDatabase;
+        const QString &name = properties.value(QStringLiteral("name")).toString();
+        const QString &type = mimeDatabase.mimeTypeForFile(name).name();
+
+        modifiedProperties.insert(QStringLiteral("Status"), QStringLiteral("queued"));
+        modifiedProperties.insert(QStringLiteral("Type"), type);
+        modifiedProperties.insert(QStringLiteral("Transferred"), properties.value(QStringLiteral("Progress")).toUInt());
+    }
+    init(modifiedProperties);
+    m_properties = properties;
+#endif
 }
 
 void ObexTransferPrivate::init(const QVariantMap &properties)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_dbusProperties = new DBusProperties(Strings::orgBluezObex(), m_bluezTransfer->path(),
                                           DBusConnection::orgBluezObex(), this);
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &ObexTransferPrivate::propertiesChanged, Qt::QueuedConnection);
+#else
+    if (m_clientOrigin) {
+        connect(m_bluezTransfer, &BluezTransfer::PropertyChanged,
+                this, &ObexTransferPrivate::orgBluezObexClientTransferPropertyChanged, Qt::QueuedConnection);
+        connect(m_bluezTransfer, &BluezTransfer::Complete,
+                this, &ObexTransferPrivate::orgBluezObexClientTransferComplete, Qt::QueuedConnection);
+        connect(m_bluezTransfer, &BluezTransfer::Error,
+                this, &ObexTransferPrivate::orgBluezObexClientTransferError, Qt::QueuedConnection);
+    } else {
+        connect(m_bluezTransfer, &BluezTransfer::Progress,
+                this, &ObexTransferPrivate::orgBluezObexTransferProgress, Qt::QueuedConnection);
+    }
+#endif
 
     // Init properties
     m_status = stringToStatus(properties.value(QStringLiteral("Status")).toString());
@@ -87,9 +134,13 @@ void ObexTransferPrivate::propertiesChanged(const QString &interface, const QVar
 {
     Q_UNUSED(invalidated)
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezObexTransfer1()) {
         return;
     }
+#else
+    Q_UNUSED(interface)
+#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -103,6 +154,13 @@ void ObexTransferPrivate::propertiesChanged(const QString &interface, const QVar
         } else if (property == QLatin1String("Filename")) {
             PROPERTY_CHANGED(m_fileName, toString, fileNameChanged);
         }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+        // 'Transferred' was 'Progress' in BlueZ 4
+        if (property == QLatin1String("Progress")) {
+            PROPERTY_CHANGED(m_transferred, toUInt, transferredChanged);
+        }
+#endif
     }
 }
 
@@ -118,6 +176,33 @@ void ObexTransferPrivate::sessionRemoved(const ObexSessionPtr &session)
         Q_EMIT q.data()->statusChanged(m_status);
     }
 }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void ObexTransferPrivate::orgBluezObexTransferProgress(qint32 total, qint32 transferred)
+{
+    Q_UNUSED(total)
+
+    QVariant value = static_cast<quint64>(transferred);
+    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.Transfer"), this, QStringLiteral("Progress"), value);
+}
+
+void ObexTransferPrivate::orgBluezObexClientTransferComplete()
+{
+    QVariant value = QStringLiteral("complete");
+    PROPERTY_CHANGED2(m_status, stringToStatus(value.toString()), statusChanged);
+}
+
+void ObexTransferPrivate::orgBluezObexClientTransferError(const QString &code, const QString &message)
+{
+    QVariant value = QStringLiteral("error");
+    PROPERTY_CHANGED2(m_status, stringToStatus(value.toString()), statusChanged);
+}
+
+void ObexTransferPrivate::orgBluezObexClientTransferPropertyChanged(const QString &property, const QDBusVariant &value)
+{
+    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.obex.Transfer"), this, property, value.variant());
+}
+#endif
 
 ObexTransfer::ObexTransfer(const QString &path, const QVariantMap &properties)
     : QObject()
@@ -177,7 +262,11 @@ QString ObexTransfer::fileName() const
 
 bool ObexTransfer::isSuspendable() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_suspendable;
+#else
+    return false;
+#endif
 }
 
 PendingCall *ObexTransfer::cancel()
@@ -187,12 +276,27 @@ PendingCall *ObexTransfer::cancel()
 
 PendingCall *ObexTransfer::suspend()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezTransfer->Suspend(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("ObexTransfer::suspend() not available in BlueZ 4!"), this);
+#endif
 }
 
 PendingCall *ObexTransfer::resume()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezTransfer->Resume(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("ObexTransfer::resume() not available in BlueZ 4!"), this);
+#endif
 }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void ObexTransfer::setTransferProperty(const QString &property, const QVariant &value)
+{
+    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.Transfer"), d, property, value);
+}
+#endif
 
 } // namespace BluezQt

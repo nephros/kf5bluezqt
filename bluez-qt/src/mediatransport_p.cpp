@@ -39,7 +39,9 @@ static MediaTransport::State stringToState(const QString &state)
 
 MediaTransportPrivate::MediaTransportPrivate(const QString &path, const QVariantMap &properties)
     : QObject()
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_dbusProperties(0)
+#endif
     , m_codec(0)
     , m_state(MediaTransport::StreamIdle)
     , m_delay(0)
@@ -52,11 +54,16 @@ MediaTransportPrivate::MediaTransportPrivate(const QString &path, const QVariant
 
 void MediaTransportPrivate::init(const QVariantMap &properties)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_dbusProperties = new DBusProperties(Strings::orgBluez(), m_bluezMediaTransport->path(),
                                           DBusConnection::orgBluez(), this);
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &MediaTransportPrivate::propertiesChanged, Qt::QueuedConnection);
+#else
+    connect(m_bluezMediaTransport, &BluezMediaTransport::PropertyChanged,
+            this, &MediaTransportPrivate::mediaTransportPropertyChanged);
+#endif
 
     // Init properties
     m_uuid = properties.value(QStringLiteral("UUID")).toString();
@@ -69,14 +76,22 @@ void MediaTransportPrivate::init(const QVariantMap &properties)
 
 QDBusPendingReply<> MediaTransportPrivate::setDBusProperty(const QString &name, const QVariant &value)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return m_dbusProperties->Set(Strings::orgBluezMediaTransport1(), name, QDBusVariant(value));
+#else
+    return m_bluezMediaTransport->SetProperty(name, QDBusVariant(value));
+#endif
 }
 
 void MediaTransportPrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
     if (interface != Strings::orgBluezMediaTransport1()) {
         return;
     }
+#else
+    Q_UNUSED(interface)
+#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -114,5 +129,12 @@ void MediaTransportPrivate::propertiesChanged(const QString &interface, const QV
         }
     }
 }
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void MediaTransportPrivate::mediaTransportPropertyChanged(const QString &property, const QDBusVariant &value)
+{
+    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.MediaTransport"), this, property, value.variant());
+}
+#endif
 
 } // namespace BluezQt

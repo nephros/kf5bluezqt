@@ -268,7 +268,25 @@ Device::Type Device::stringToType(const QString &typeString)
 
 PendingCall *Device::connectToDevice()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezDevice->Connect(), PendingCall::ReturnVoid, this);
+#else
+    // In BlueZ 4 there is no generic Connect(), so try connecting to the Input or Audio services.
+    Type deviceType = type();
+    if (deviceType >= Keyboard && deviceType <= Peripheral) {
+        if (!d->m_inputInterface) {
+            d->m_inputInterface = new QDBusInterface(Strings::orgBluez(), ubi(),
+                    QStringLiteral("org.bluez.Input"), DBusConnection::orgBluez(), this);
+        }
+        return new PendingCall(d->m_inputInterface->asyncCall(QStringLiteral("Connect")), PendingCall::ReturnVoid, this);
+    } else {
+        if (!d->m_audioInterface) {
+            d->m_audioInterface = new QDBusInterface(Strings::orgBluez(), ubi(),
+                    QStringLiteral("org.bluez.Audio"), DBusConnection::orgBluez(), this);
+        }
+        return new PendingCall(d->m_audioInterface->asyncCall(QStringLiteral("Connect")), PendingCall::ReturnVoid, this);
+    }
+#endif
 }
 
 PendingCall *Device::disconnectFromDevice()
@@ -278,22 +296,46 @@ PendingCall *Device::disconnectFromDevice()
 
 PendingCall *Device::connectProfile(const QString &uuid)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezDevice->ConnectProfile(uuid), PendingCall::ReturnVoid, this);
+#else
+    Q_UNUSED(uuid)
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("Device::connectProfile() not supported for BlueZ 4"));
+#endif
 }
 
 PendingCall *Device::disconnectProfile(const QString &uuid)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezDevice->DisconnectProfile(uuid), PendingCall::ReturnVoid, this);
+#else
+    Q_UNUSED(uuid)
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("Device::disconnectProfile() not supported for BlueZ 4"));
+#endif
 }
 
 PendingCall *Device::pair()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezDevice->Pair(), PendingCall::ReturnVoid, this);
+#else
+    if (d->m_adapter.isNull()) {
+        return new PendingCall(PendingCall::InternalError, QStringLiteral("Invalid adapter"), this);
+    }
+    return new PendingCall(d->pair(d->m_adapter), PendingCall::ReturnObjectPath, this);
+#endif
 }
 
 PendingCall *Device::cancelPairing()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezDevice->CancelPairing(), PendingCall::ReturnVoid, this);
+#else
+    if (d->m_adapter.isNull()) {
+        return new PendingCall(PendingCall::InternalError, QStringLiteral("Invalid adapter"), this);
+    }
+    return new PendingCall(d->cancelPairing(d->m_adapter), PendingCall::ReturnVoid, this);
+#endif
 }
 
 } // namespace BluezQt

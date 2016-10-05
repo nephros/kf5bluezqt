@@ -154,9 +154,11 @@ PendingCall *Manager::registerAgent(Agent *agent)
 {
     Q_ASSERT(agent);
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (!d->m_bluezAgentManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
+#endif
 
     QString capability;
 
@@ -178,6 +180,7 @@ PendingCall *Manager::registerAgent(Agent *agent)
         break;
     }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     new AgentAdaptor(agent, this);
 
     if (!DBusConnection::orgBluez().registerObject(agent->objectPath().path(), agent)) {
@@ -186,12 +189,18 @@ PendingCall *Manager::registerAgent(Agent *agent)
 
     return new PendingCall(d->m_bluezAgentManager->RegisterAgent(agent->objectPath(), capability),
                            PendingCall::ReturnVoid, this);
+#else
+    // registerAgent() in BlueZ 5 registers an application agent, which is different from the
+    // behavior of registerAgent() in BlueZ 5, so this is a no-op here.
+    return new PendingCall(PendingCall::NoError, QString(), this);
+#endif
 }
 
 PendingCall *Manager::unregisterAgent(Agent *agent)
 {
     Q_ASSERT(agent);
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (!d->m_bluezAgentManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
@@ -200,24 +209,44 @@ PendingCall *Manager::unregisterAgent(Agent *agent)
 
     return new PendingCall(d->m_bluezAgentManager->UnregisterAgent(agent->objectPath()),
                            PendingCall::ReturnVoid, this);
+#else
+    // registerAgent() is a no-op for non-default-agents in BlueZ 4, so unregistration is only
+    // necessary if the agent was set as a default agent.
+    AdapterPtr adapter = d->findAdapterForDefaultAgent(agent);
+    if (!adapter) {
+        return new PendingCall(PendingCall::NoError, QString(), this);
+    }
+
+    return new PendingCall(d->unregisterDefaultAgent(adapter), PendingCall::ReturnVoid, this);
+#endif
 }
 
 PendingCall *Manager::requestDefaultAgent(Agent *agent)
 {
     Q_ASSERT(agent);
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (!d->m_bluezAgentManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
 
     return new PendingCall(d->m_bluezAgentManager->RequestDefaultAgent(agent->objectPath()),
                            PendingCall::ReturnVoid, this);
+#else
+    if (d->m_adapters.isEmpty()) {
+        return new PendingCall(PendingCall::InternalError, QStringLiteral("No adapters available!"), this);
+    }
+
+    AdapterPtr adapter = d->m_usableAdapter ? d->m_usableAdapter : d->m_adapters.values().first();
+    return new PendingCall(d->requestDefaultAgent(adapter, agent), PendingCall::ReturnVoid, this);
+#endif
 }
 
 PendingCall *Manager::registerProfile(Profile *profile)
 {
     Q_ASSERT(profile);
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (!d->m_bluezProfileManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
@@ -230,12 +259,16 @@ PendingCall *Manager::registerProfile(Profile *profile)
 
     return new PendingCall(d->m_bluezProfileManager->RegisterProfile(profile->objectPath(), profile->uuid(), profile->d->options),
                            PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("Manager::registerProfile() not supported for BlueZ 4"));
+#endif
 }
 
 PendingCall *Manager::unregisterProfile(Profile *profile)
 {
     Q_ASSERT(profile);
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (!d->m_bluezProfileManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
@@ -244,6 +277,9 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
 
     return new PendingCall(d->m_bluezProfileManager->UnregisterProfile(profile->objectPath()),
                            PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(PendingCall::NotSupported, QStringLiteral("Manager::unregisterProfile() not supported for BlueZ 4"));
+#endif
 }
 
 } // namespace BluezQt

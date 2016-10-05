@@ -57,13 +57,23 @@ QString Adapter::address() const
 
 QString Adapter::name() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_alias;
+#else
+    return d->m_name;
+#endif
 }
 
 PendingCall *Adapter::setName(const QString &name)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->setDBusProperty(QStringLiteral("Alias"), name),
                            PendingCall::ReturnVoid, this);
+#else
+    // "Alias" property is not present in BlueZ 4
+    return new PendingCall(d->setDBusProperty(QStringLiteral("Name"), name),
+                           PendingCall::ReturnVoid, this);
+#endif
 }
 
 QString Adapter::systemName() const

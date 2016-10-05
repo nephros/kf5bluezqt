@@ -363,6 +363,9 @@ private:
     friend class AdapterPrivate;
     friend class ManagerPrivate;
     friend class InitAdaptersJobPrivate;
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    friend class DevicePrivate;
+#endif
 };
 
 } // namespace BluezQt

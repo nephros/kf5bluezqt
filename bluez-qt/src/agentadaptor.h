@@ -39,7 +39,11 @@ class Agent;
 class AgentAdaptor : public QDBusAbstractAdaptor
 {
     Q_OBJECT
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     Q_CLASSINFO("D-Bus Interface", "org.bluez.Agent1")
+#else
+    Q_CLASSINFO("D-Bus Interface", "org.bluez.Agent")
+#endif
 
 public:
     explicit AgentAdaptor(Agent *parent, Manager *manager);

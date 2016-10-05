@@ -13,4 +13,5 @@
       <arg name="write_mtu" type="q" direction="out"/>
     </method>
     <method name="Release"/>
+  </interface>
 </node>
