@@ -1,5 +1,5 @@
 Name:       kf5bluezqt-bluez4
-Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API
+Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API (for BlueZ 4 backend)
 Version:    5.24.0
 Release:    1
 Group:      System/Libraries
@@ -7,6 +7,7 @@ License:    LGPLv2.1
 URL:        https://git.merproject.org/mer-core/kf5bluezqt
 Source0:    %{name}-%{version}.tar.bz2
 Provides:   kf5bluezqt
+Conflicts:  kf5bluezqt-bluez5
 
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
@@ -21,9 +22,10 @@ Requires: obexd
 This package contains the KF5BluezQt library.
 
 %package declarative
-Summary:    Declarative plugin for kf5bluezqt
+Summary:    Declarative plugin for kf5bluezqt (for BlueZ 4 backend)
 Group:      Development/Tools
 Provides:   kf5bluezqt-declarative
+Conflicts:  kf5bluezqt-bluez5-declarative
 Requires:   %{name} = %{version}-%{release}
 Requires:   %{name} = %{version}
 
@@ -31,8 +33,10 @@ Requires:   %{name} = %{version}
 This package contains declarative plugin for kf5bluezqt
 
 %package devel
-Summary:    Development files for kf5bluezqt
+Summary:    Development files for kf5bluezqt (for BlueZ 4 backend)
 Group:      Development/Libraries
+Provides:   kf5bluezqt-devel
+Conflicts:  kf5bluezqt-bluez5-devel
 Requires:   %{name} = %{version}-%{release}
 Requires:   %{name} = %{version}
 
