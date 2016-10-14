@@ -7,6 +7,7 @@ License:    LGPLv2.1
 URL:        https://git.merproject.org/mer-core/kf5bluezqt
 Source0:    %{name}-%{version}.tar.bz2
 Provides:   kf5bluezqt
+Conflicts:  kf5bluezqt-bluez4
 
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
@@ -24,6 +25,7 @@ This package contains the KF5BluezQt library.
 Summary:    Declarative plugin for kf5bluezqt
 Group:      Development/Tools
 Provides:   kf5bluezqt-declarative
+Conflicts:  kf5bluezqt-bluez4-declarative
 Requires:   %{name} = %{version}-%{release}
 Requires:   %{name} = %{version}
 
@@ -33,6 +35,8 @@ This package contains declarative plugin for kf5bluezqt
 %package devel
 Summary:    Development files for kf5bluezqt
 Group:      Development/Libraries
+Provides:   kf5bluezqt-devel
+Conflicts:  kf5bluezqt-bluez4-devel
 Requires:   %{name} = %{version}-%{release}
 Requires:   %{name} = %{version}
 
