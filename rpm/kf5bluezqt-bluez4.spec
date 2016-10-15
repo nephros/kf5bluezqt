@@ -15,8 +15,6 @@ BuildRequires:  pkgconfig(Qt5Qml)
 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
-Requires: bluez
-Requires: obexd
 
 %description
 This package contains the KF5BluezQt library.
