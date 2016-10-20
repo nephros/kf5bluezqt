@@ -13,6 +13,8 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
 
+Requires: bluez
+Requires: obexd
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
