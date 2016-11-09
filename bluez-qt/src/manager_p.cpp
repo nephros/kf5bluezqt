@@ -621,7 +621,12 @@ void ManagerPrivate::deviceGetPropertiesFinished(QDBusPendingCallWatcher *watche
     bluezDevice->deleteLater();
 
     if (!reply.isError()) {
-        addDevice(bluezDevice->path(), reply.value());
+        DevicePtr device = m_devices.value(bluezDevice->path());
+        if (device.isNull()) {
+            addDevice(bluezDevice->path(), reply.value());
+        } else {
+            device->d->propertiesChanged(Strings::orgBluezDevice1(), reply.value(), QStringList());
+        }
     }
 
     if (!m_initialized && m_pendingInitializationWatchers.isEmpty()) {
