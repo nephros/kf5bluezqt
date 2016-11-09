@@ -647,6 +647,7 @@ void ManagerPrivate::deviceFound(const QString &address, const QVariantMap &valu
         const DevicePtr &device = it.value();
 
         if (device->address() == address) {
+            device->d->propertiesChanged(Strings::orgBluezDevice1(), values, QStringList());
             return;
         }
     }
