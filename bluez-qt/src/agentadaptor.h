@@ -57,6 +57,10 @@ public Q_SLOTS:
     void RequestAuthorization(const QDBusObjectPath &device, const QDBusMessage &msg);
     void AuthorizeService(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg);
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    void Authorize(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg);
+#endif
+
     Q_NOREPLY void Cancel();
     Q_NOREPLY void Release();
 

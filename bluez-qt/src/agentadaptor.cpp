@@ -132,6 +132,14 @@ void AgentAdaptor::AuthorizeService(const QDBusObjectPath &device, const QString
     m_agent->authorizeService(dev, uuid.toUpper(), req);
 }
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void AgentAdaptor::Authorize(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg)
+{
+    AuthorizeService(device, uuid, msg);
+}
+
+#endif
+
 void AgentAdaptor::Cancel()
 {
     m_agent->cancel();
