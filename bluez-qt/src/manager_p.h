@@ -111,6 +111,8 @@ public:
     void unregisterAgentFinished(QDBusPendingCallWatcher *watcher);
     AdapterPtr findAdapterForDefaultAgent(Agent *agent);
     void agentCreated(Agent *agent);
+
+    QDBusPendingReply<QDBusObjectPath> createPairedDevice(AdapterPtr adapter, const QString &address);
 #endif
 
     Manager *q;

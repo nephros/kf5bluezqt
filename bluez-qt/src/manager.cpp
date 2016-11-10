@@ -282,4 +282,22 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
 #endif
 }
 
+PendingCall *Manager::pairWithDevice(const QString &address)
+{
+    BluezQt::DevicePtr device = deviceForAddress(address);
+    if (device) {
+        return device->pair();
+    }
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    return new PendingCall(PendingCall::InternalError, QStringLiteral("Device unknown!"), this);
+#else
+    if (d->m_adapters.isEmpty()) {
+        return new PendingCall(PendingCall::InternalError, QStringLiteral("No adapters available!"), this);
+    }
+
+    AdapterPtr adapter = d->m_usableAdapter ? d->m_usableAdapter : d->m_adapters.values().first();
+    return new PendingCall(d->createPairedDevice(adapter, address), PendingCall::ReturnObjectPath, this);
+#endif
+}
+
 } // namespace BluezQt
