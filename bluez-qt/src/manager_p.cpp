@@ -764,6 +764,11 @@ void ManagerPrivate::agentCreated(Agent *agent)
         qCWarning(BLUEZQT) << "Cannot register object" << agent->objectPath().path();
     }
 }
+
+QDBusPendingReply<QDBusObjectPath> ManagerPrivate::createPairedDevice(AdapterPtr adapter, const QString &address)
+{
+    return adapter->d->createPairedDevice(address);
+}
 #endif
 
 } // namespace BluezQt

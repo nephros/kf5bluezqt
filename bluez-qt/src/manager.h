@@ -295,6 +295,16 @@ public:
      */
     PendingCall *unregisterProfile(Profile *profile);
 
+    /**
+     * Pairs with a device.
+     *
+     * Possible errors: PendingCall::DoesNotExist
+     *
+     * @param address address of the device
+     * @return pending call with null if the device is known, otherwise with the device object path
+     */
+    PendingCall *pairWithDevice(const QString &address);
+
 Q_SIGNALS:
     /**
      * Indicates that operational state have changed.
