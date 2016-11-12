@@ -24,6 +24,10 @@
 #include "utils.h"
 #include "macros.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/mediatransport_bluez4_p.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -47,7 +51,11 @@ MediaTransportPrivate::MediaTransportPrivate(const QString &path, const QVariant
     , m_delay(0)
     , m_volume(0)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_bluezMediaTransport = new BluezMediaTransport(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
+#else
+    m_bluez4 = new MediaTransportBluez4(this, path);
+#endif
 
     init(properties);
 }
@@ -60,9 +68,6 @@ void MediaTransportPrivate::init(const QVariantMap &properties)
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &MediaTransportPrivate::propertiesChanged, Qt::QueuedConnection);
-#else
-    connect(m_bluezMediaTransport, &BluezMediaTransport::PropertyChanged,
-            this, &MediaTransportPrivate::mediaTransportPropertyChanged);
 #endif
 
     // Init properties
@@ -79,19 +84,15 @@ QDBusPendingReply<> MediaTransportPrivate::setDBusProperty(const QString &name, 
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return m_dbusProperties->Set(Strings::orgBluezMediaTransport1(), name, QDBusVariant(value));
 #else
-    return m_bluezMediaTransport->SetProperty(name, QDBusVariant(value));
+    return m_bluez4->m_bluez4MediaTransport->SetProperty(name, QDBusVariant(value));
 #endif
 }
 
 void MediaTransportPrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
 {
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
     if (interface != Strings::orgBluezMediaTransport1()) {
         return;
     }
-#else
-    Q_UNUSED(interface)
-#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -129,12 +130,5 @@ void MediaTransportPrivate::propertiesChanged(const QString &interface, const QV
         }
     }
 }
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-void MediaTransportPrivate::mediaTransportPropertyChanged(const QString &property, const QDBusVariant &value)
-{
-    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.MediaTransport"), this, property, value.variant());
-}
-#endif
 
 } // namespace BluezQt

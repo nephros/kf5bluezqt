@@ -27,7 +27,7 @@
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "obexfiletransfer1.h"
 #else
-#include "bluezobexfiletransfer.h"
+#include "bluez4obexfiletransfer.h"
 #endif
 
 namespace BluezQt

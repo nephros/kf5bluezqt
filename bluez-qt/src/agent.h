@@ -206,41 +206,6 @@ public:
     virtual void release();
 };
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-class ProxyAgent : public Agent
-{
-    Q_OBJECT
-
-public:
-    ProxyAgent(Agent *agent, const QString &pathSuffix, QObject *parent = Q_NULLPTR);
-    ~ProxyAgent();
-
-    Agent *agent() const;
-
-    QDBusObjectPath objectPath() const;
-    Capability capability() const;
-
-    void requestPinCode(BluezQt::DevicePtr device, const BluezQt::Request<QString> &request);
-    void displayPinCode(BluezQt::DevicePtr device, const QString &pinCode);
-    void requestPasskey(BluezQt::DevicePtr device, const BluezQt::Request<quint32> &request);
-    void displayPasskey(BluezQt::DevicePtr device, const QString &passkey, const QString &entered);
-    void requestConfirmation(BluezQt::DevicePtr device, const QString &passkey, const BluezQt::Request<> &request);
-    void requestAuthorization(BluezQt::DevicePtr device, const BluezQt::Request<> &request);
-    void authorizeService(BluezQt::DevicePtr device, const QString &uuid, const BluezQt::Request<> &request);
-    void cancel();
-    void release();
-
-    static QString capabilityToString(Agent::Capability capability);
-
-Q_SIGNALS:
-    void agentReleased();
-
-private:
-    Agent *m_agent;
-    QString m_pathSuffix;
-};
-#endif
-
 } // namespace BluezQt
 
 #endif // BLUEZQT_AGENT_H

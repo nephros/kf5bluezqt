@@ -125,6 +125,8 @@ private:
 
     friend class ObexSessionPrivate;
     friend class ObexManagerPrivate;
+
+    friend class ObexManagerBluez4;
 };
 
 } // namespace BluezQt

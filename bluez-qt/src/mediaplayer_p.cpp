@@ -24,6 +24,10 @@
 #include "utils.h"
 #include "macros.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/mediaplayer_bluez4_p.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -84,7 +88,11 @@ MediaPlayerPrivate::MediaPlayerPrivate(const QString &path, const QVariantMap &p
     , m_status(MediaPlayer::Error)
     , m_position(0)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_bluezMediaPlayer = new BluezMediaPlayer(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
+#else
+    m_bluez4 = new MediaPlayerBluez4(this, path);
+#endif
 
     init(properties);
 }
@@ -97,9 +105,6 @@ void MediaPlayerPrivate::init(const QVariantMap &properties)
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &MediaPlayerPrivate::propertiesChanged, Qt::QueuedConnection);
-#else
-    connect(m_bluezMediaPlayer, &BluezMediaPlayer::PropertyChanged,
-            this, &MediaPlayerPrivate::mediaPlayerPropertyChanged);
 #endif
 
     // Init properties
@@ -117,19 +122,15 @@ QDBusPendingReply<> MediaPlayerPrivate::setDBusProperty(const QString &name, con
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return m_dbusProperties->Set(Strings::orgBluezMediaPlayer1(), name, QDBusVariant(value));
 #else
-    return m_bluezMediaPlayer->SetProperty(name, QDBusVariant(value));
+    return m_bluez4->m_bluez4MediaPlayer->SetProperty(name, QDBusVariant(value));
 #endif
 }
 
 void MediaPlayerPrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
 {
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezMediaPlayer1()) {
         return;
     }
-#else
-    Q_UNUSED(interface)
-#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -179,12 +180,5 @@ MediaPlayerTrack MediaPlayerPrivate::variantToTrack(const QVariant &variant) con
     const QVariantMap &properties = qdbus_cast<QVariantMap>(variant);
     return MediaPlayerTrack(properties);
 }
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-void MediaPlayerPrivate::mediaPlayerPropertyChanged(const QString &property, const QDBusVariant &value)
-{
-    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.MediaTransport"), this, property, value.variant());
-}
-#endif
 
 } // namespace BluezQt

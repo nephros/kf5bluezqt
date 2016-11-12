@@ -198,6 +198,8 @@ private:
     friend class ObexSession;
     friend class ObexObjectPush;
     friend class ObexFileTransfer;
+
+    friend class ObexManagerBluez4;
 };
 
 } // namespace BluezQt

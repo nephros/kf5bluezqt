@@ -25,7 +25,7 @@
 #include "utils.h"
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
-#include "obexmanager_p.h"
+#include "bluez4/obexmanager_bluez4_p.h"
 #endif
 
 #include <QStringBuilder>
@@ -50,7 +50,6 @@ public:
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
     QString m_oppTransferPath;
-    void notifyTransferAborted();
 #endif
 };
 
@@ -105,7 +104,9 @@ void RequestPrivate::rejectRequest()
     }
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
-    notifyTransferAborted();
+    if (!m_oppTransferPath.isEmpty()) {
+        ObexManagerNotifier::notifyTransferAborted(m_oppTransferPath);
+    }
 #endif
 }
 
@@ -118,27 +119,11 @@ void RequestPrivate::cancelRequest()
     }
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
-    notifyTransferAborted();
-#endif
-}
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-void RequestPrivate::notifyTransferAborted()
-{
-    if (m_type == OrgBluezObexAgent && !m_oppTransferPath.isEmpty()) {
-        QDBusMessage call = QDBusMessage::createMethodCall(ObexManagerNotifier::service(),
-                                                           ObexManagerNotifier::objectPath(),
-                                                           ObexManagerNotifier::interface(),
-                                                           QStringLiteral("setTransferAborted"));
-
-        call << m_oppTransferPath;
-
-        if (!ObexManagerNotifier::connection().send(call)) {
-            qCWarning(BLUEZQT) << "Request: Failed to notify manager of aborted transfer";
-        }
+    if (!m_oppTransferPath.isEmpty()) {
+        ObexManagerNotifier::notifyTransferAborted(m_oppTransferPath);
     }
-}
 #endif
+}
 
 // T
 template<typename T>
@@ -193,13 +178,13 @@ void Request<T>::cancel() const
     d->cancelRequest();
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
 template<typename T>
 void Request<T>::setObjectPushTransferPath(const QString &transferPath)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
     d->m_oppTransferPath = transferPath;
-}
 #endif
+}
 
 // void
 Request<void>::Request()
@@ -246,12 +231,14 @@ void Request<void>::cancel() const
     d->cancelRequest();
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
 void Request<void>::setObjectPushTransferPath(const QString &transferPath)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    Q_UNUSED(transferPath)
+#else
     d->m_oppTransferPath = transferPath;
-}
 #endif
+}
 
 // Generate classes
 template class Request<void>;

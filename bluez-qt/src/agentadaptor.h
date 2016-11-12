@@ -39,11 +39,7 @@ class Agent;
 class AgentAdaptor : public QDBusAbstractAdaptor
 {
     Q_OBJECT
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     Q_CLASSINFO("D-Bus Interface", "org.bluez.Agent1")
-#else
-    Q_CLASSINFO("D-Bus Interface", "org.bluez.Agent")
-#endif
 
 public:
     explicit AgentAdaptor(Agent *parent, Manager *manager);
@@ -56,10 +52,6 @@ public Q_SLOTS:
     void RequestConfirmation(const QDBusObjectPath &device, quint32 passkey, const QDBusMessage &msg);
     void RequestAuthorization(const QDBusObjectPath &device, const QDBusMessage &msg);
     void AuthorizeService(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg);
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    void Authorize(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg);
-#endif
 
     Q_NOREPLY void Cancel();
     Q_NOREPLY void Release();

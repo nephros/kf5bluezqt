@@ -103,10 +103,6 @@ public:
      */
     void cancel() const;
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    void setObjectPushTransferPath(const QString &transferPath);
-#endif
-
 private:
     explicit Request(RequestOriginatingType type, const QDBusMessage &message);
 
@@ -115,6 +111,11 @@ private:
     friend class AgentAdaptor;
     friend class ObexAgentAdaptor;
     friend class ProfileAdaptor;
+
+    // For BlueZ 4
+    void setObjectPushTransferPath(const QString &transferPath);
+    friend class ObexAgentAdaptorBluez4;
+    friend class AgentAdaptorBluez4;
 };
 
 // void
@@ -132,10 +133,6 @@ public:
     void reject() const;
     void cancel() const;
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    void setObjectPushTransferPath(const QString &transferPath);
-#endif
-
 private:
     explicit Request(RequestOriginatingType type, const QDBusMessage &message);
 
@@ -144,6 +141,11 @@ private:
     friend class AgentAdaptor;
     friend class ObexAgentAdaptor;
     friend class ProfileAdaptor;
+
+    // For BlueZ 4
+    void setObjectPushTransferPath(const QString &transferPath);
+    friend class ObexAgentAdaptorBluez4;
+    friend class AgentAdaptorBluez4;
 };
 
 } // namespace BluezQt

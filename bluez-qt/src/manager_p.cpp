@@ -29,14 +29,13 @@
 #include "debug.h"
 #include "utils.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/manager_bluez4_p.h"
+#endif
+
 #include <QDBusReply>
 #include <QDBusConnection>
 #include <QDBusServiceWatcher>
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-#include "bluezadapter.h"
-#include "agentadaptor.h"
-#endif
 
 namespace BluezQt
 {
@@ -48,8 +47,6 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
     , m_dbusObjectManager(0)
     , m_bluezAgentManager(0)
     , m_bluezProfileManager(0)
-#else
-    , m_bluezManager(0)
 #endif
     , m_usableAdapter(0)
     , m_initialized(false)
@@ -134,17 +131,36 @@ void ManagerPrivate::load()
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::getManagedObjectsFinished);
 #else
-    m_bluezManager = new BluezManager(Strings::orgBluez(), QStringLiteral("/"), DBusConnection::orgBluez(), this);
-
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_bluezManager->DefaultAdapter(), this);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::managerDefaultAdapterFinished);
-
+    m_bluez4 = new ManagerBluez4(this);
+    connect(m_bluez4, &ManagerBluez4::loaded, this, &ManagerPrivate::bluez4ManagerLoaded);
+    m_bluez4->load();
 #endif
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void ManagerPrivate::bluez4ManagerLoaded(bool success, const QString &errorMessage)
+{
+    if (success) {
+        // Initialize here as per getManagedObjectsFinished().
+        m_loaded = true;
+        m_initialized = true;
+
+        Q_EMIT q->operationalChanged(true);
+
+        if (q->isBluetoothOperational()) {
+            Q_EMIT q->bluetoothOperationalChanged(true);
+        }
+
+        Q_EMIT initFinished();
+    } else {
+        Q_EMIT initError(errorMessage);
+    }
+}
+#endif
+
 void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     const QDBusPendingReply<DBusManagerStruct> &reply = *watcher;
     watcher->deleteLater();
 
@@ -195,8 +211,10 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
     }
 
     Q_EMIT initFinished();
-}
+#else
+    Q_UNUSED(watcher)
 #endif
+}
 
 void ManagerPrivate::clear()
 {
@@ -232,6 +250,11 @@ void ManagerPrivate::clear()
     if (m_bluezAgentManager) {
         m_bluezAgentManager->deleteLater();
         m_bluezAgentManager = Q_NULLPTR;
+    }
+#else
+    if (m_bluez4) {
+        m_bluez4->deleteLater();
+        m_bluez4 = Q_NULLPTR;
     }
 #endif
 }
@@ -269,7 +292,6 @@ void ManagerPrivate::serviceUnregistered()
     Q_EMIT q->operationalChanged(false);
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void ManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
 {
     const QString &path = objectPath.path();
@@ -290,9 +312,7 @@ void ManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QV
         }
     }
 }
-#endif
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void ManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, const QStringList &interfaces)
 {
     const QString &path = objectPath.path();
@@ -312,12 +332,11 @@ void ManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, const 
         }
     }
 }
-#endif
 
 void ManagerPrivate::adapterRemoved(const AdapterPtr &adapter)
 {
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
-    m_defaultAgents.remove(adapter->ubi());
+    m_bluez4->adapterRemoved(adapter->d);
 #endif
 
     disconnect(adapter.data(), &Adapter::poweredChanged, this, &ManagerPrivate::adapterPoweredChanged);
@@ -379,16 +398,7 @@ void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &p
     connect(adapter.data(), &Adapter::poweredChanged, this, &ManagerPrivate::adapterPoweredChanged);
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
-    connect(adapter->d->m_bluezAdapter, &BluezAdapter::DeviceFound,
-            this, &ManagerPrivate::deviceFound);
-    connect(adapter->d->m_bluezAdapter, &BluezAdapter::DeviceCreated,
-            this, &ManagerPrivate::addDeviceByPath);
-    connect(adapter->d->m_bluezAdapter, &BluezAdapter::DeviceRemoved,
-            this, &ManagerPrivate::deviceRemoved);
-    connect(adapter->d->m_bluezAdapter, &BluezAdapter::PropertyChanged,
-            this, &ManagerPrivate::adapterPropertyChanged);
-    connect(adapter.data()->d, &AdapterPrivate::agentCreated,
-            this, &ManagerPrivate::agentCreated);
+    m_bluez4->addAdapter(adapter->d);
 #endif
 }
 
@@ -466,309 +476,5 @@ void ManagerPrivate::setUsableAdapter(const AdapterPtr &adapter)
 void ManagerPrivate::dummy()
 {
 }
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-void ManagerPrivate::managerInitialized()
-{
-    if (!m_initialized) {
-        // Set up initial state as per getManagedObjectsFinished()
-        m_loaded = true;
-        m_initialized = true;
-
-        Q_EMIT q->operationalChanged(true);
-
-        if (q->isBluetoothOperational()) {
-            Q_EMIT q->bluetoothOperationalChanged(true);
-        }
-
-        Q_EMIT initFinished();
-    }
-}
-
-void ManagerPrivate::managerDefaultAdapterFinished(QDBusPendingCallWatcher *watcher)
-{
-    const QDBusPendingReply<QDBusObjectPath> &reply = *watcher;
-    watcher->deleteLater();
-
-    if (reply.isError()) {
-        Q_EMIT initError(reply.error().message());
-        return;
-    }
-
-    const QDBusObjectPath &objectPath = reply.value();
-    managerAdapterAdded(objectPath);
-
-    connect(m_bluezManager, &BluezManager::AdapterAdded,
-            this, &ManagerPrivate::managerAdapterAdded);
-    connect(m_bluezManager, &BluezManager::AdapterRemoved,
-            this, &ManagerPrivate::managerAdapterRemoved);
-}
-
-void ManagerPrivate::managerAdapterAdded(const QDBusObjectPath &objectPath)
-{
-    QDBusInterface *bluezAdapter = new QDBusInterface(Strings::orgBluez(), objectPath.path(),
-            QStringLiteral("org.bluez.Adapter"), DBusConnection::orgBluez(), this);
-
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(bluezAdapter->asyncCall(QStringLiteral("GetProperties")), this);
-    watcher->setProperty("bluezAdapter", QVariant::fromValue(bluezAdapter));
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::adapterGetPropertiesFinished);
-}
-
-void ManagerPrivate::managerAdapterRemoved(const QDBusObjectPath &objectPath)
-{
-    removeAdapter(objectPath.path());
-}
-
-void ManagerPrivate::adapterGetPropertiesFinished(QDBusPendingCallWatcher *watcher)
-{
-    const QDBusPendingReply<QVariantMap> &reply = *watcher;
-    const QVariantMap &properties = reply.value();
-    watcher->deleteLater();
-
-    QDBusInterface *bluezAdapter = watcher->property("bluezAdapter").value<QDBusInterface *>();
-    bluezAdapter->deleteLater();
-
-    if (reply.isError()) {
-        if (!m_initialized) {
-            Q_EMIT initError(reply.error().message());
-        }
-        return;
-    }
-
-    addAdapter(bluezAdapter->path(), properties);
-
-    QVariant deviceList = properties.value(QStringLiteral("Devices"));
-    if (deviceList.isValid()) {
-        updateDeviceList(bluezAdapter->path(), deviceList);
-    }
-
-    if (m_pendingInitializationWatchers.isEmpty()) {
-        managerInitialized();
-    }
-}
-
-void ManagerPrivate::adapterPropertyChanged(const QString &property, const QDBusVariant &value)
-{
-    BluezAdapter *adapter = qobject_cast<BluezAdapter *>(sender());
-
-    if (adapter && property == QStringLiteral("Devices")) {
-        updateDeviceList(adapter->path(), value.variant());
-    }
-}
-
-void ManagerPrivate::updateDeviceList(const QString &adapterPath, const QVariant &deviceList)
-{
-    QStringList devicePaths;
-    const QDBusArgument &dbusArgument = deviceList.value<QDBusArgument>();
-    dbusArgument.beginArray();
-    while (!dbusArgument.atEnd()) {
-        QDBusObjectPath path;
-        dbusArgument >> path;
-        devicePaths << path.path();
-    }
-    dbusArgument.endArray();
-
-    QHash<QString, DevicePtr>::const_iterator it;
-    QStringList pathsToRemove;
-
-    for (it = m_devices.constBegin(); it != m_devices.constEnd(); ++it) {
-        const QString &path = it.key();
-        const DevicePtr &device = it.value();
-
-        if (device->adapter()->ubi() == adapterPath && !devicePaths.contains(path)) {
-            pathsToRemove.append(path);
-        }
-    }
-
-    Q_FOREACH (const QString &devicePath, devicePaths) {
-        if (!m_devices.contains(devicePath)) {
-            QDBusPendingCallWatcher *watcher = addDeviceByPath(QDBusObjectPath(devicePath));
-            if (!m_initialized && watcher) {
-                m_pendingInitializationWatchers.insert(watcher);
-            }
-        }
-    }
-
-    Q_FOREACH (const QString &devicePath, pathsToRemove) {
-        removeDevice(devicePath);
-    }
-}
-
-QDBusPendingCallWatcher *ManagerPrivate::addDeviceByPath(const QDBusObjectPath &objectPath)
-{
-    if (!m_devices.contains(objectPath.path())) {
-        QDBusInterface *bluezDevice = new QDBusInterface(Strings::orgBluez(), objectPath.path(),
-                QStringLiteral("org.bluez.Device"), DBusConnection::orgBluez(), this);
-
-        QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(
-                    bluezDevice->asyncCall(QStringLiteral("GetProperties")), this);
-        watcher->setProperty("bluezDevice", QVariant::fromValue(bluezDevice));
-        connect(watcher, &QDBusPendingCallWatcher::finished,
-                this, &ManagerPrivate::deviceGetPropertiesFinished);
-        return watcher;
-    }
-    return 0;
-}
-
-void ManagerPrivate::deviceGetPropertiesFinished(QDBusPendingCallWatcher *watcher)
-{
-    m_pendingInitializationWatchers.remove(watcher);
-
-    const QDBusPendingReply<QVariantMap> &reply = *watcher;
-    watcher->deleteLater();
-
-    QDBusInterface *bluezDevice = watcher->property("bluezDevice").value<QDBusInterface *>();
-    bluezDevice->deleteLater();
-
-    if (!reply.isError()) {
-        DevicePtr device = m_devices.value(bluezDevice->path());
-        if (device.isNull()) {
-            addDevice(bluezDevice->path(), reply.value());
-        } else {
-            device->d->propertiesChanged(Strings::orgBluezDevice1(), reply.value(), QStringList());
-        }
-    }
-
-    if (!m_initialized && m_pendingInitializationWatchers.isEmpty()) {
-        managerInitialized();
-    }
-}
-
-void ManagerPrivate::deviceFound(const QString &address, const QVariantMap &values)
-{
-    BluezAdapter *bluezAdapter = qobject_cast<BluezAdapter *>(sender());
-    if (!bluezAdapter) {
-        return;
-    }
-
-    QHash<QString, DevicePtr>::iterator it;
-
-    for (it = m_devices.begin(); it != m_devices.end(); ++it) {
-        const DevicePtr &device = it.value();
-
-        if (device->address() == address) {
-            device->d->propertiesChanged(Strings::orgBluezDevice1(), values, QStringList());
-            return;
-        }
-    }
-
-    // 'Adapter' is not included in the property map provided by DeviceFound(), but addDevice()
-    // expects this property so it must be present.
-    QString addressCopy = address;
-    QString devicePath = QString("%1/dev_%2").arg(bluezAdapter->path()).arg(addressCopy.replace(':', '_'));
-    QVariantMap properties = values;
-    properties.insert(QStringLiteral("Adapter"), QVariant::fromValue(QDBusObjectPath(bluezAdapter->path())));
-
-    addDevice(devicePath, properties);
-}
-
-void ManagerPrivate::deviceRemoved(const QDBusObjectPath &objectPath)
-{
-    removeDevice(objectPath.path());
-}
-
-QDBusPendingReply<void> ManagerPrivate::requestDefaultAgent(AdapterPtr adapter, Agent *agent)
-{
-    Q_ASSERT(adapter);
-    Q_ASSERT(agent);
-
-    // Register a proxy for this agent instead of registering it directly. This allows the same
-    // agent to be used as the default agent as well as the agent for initiated pairing requests,
-    // which is not supported behavior in BlueZ 4.
-    ProxyAgent *proxyAgent = adapter->d->createProxyForAgent(agent, "/bluez4_system_agent_proxy");
-    QDBusPendingReply<void> reply = adapter->d->m_bluezAdapter->RegisterAgent(proxyAgent->objectPath(), ProxyAgent::capabilityToString(proxyAgent->capability()));
-
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
-    watcher->setProperty("proxyAgent", QVariant::fromValue(proxyAgent));
-    watcher->setProperty("adapterAddress", adapter->address());
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::requestDefaultAgentFinished);
-
-    return reply;
-}
-
-void ManagerPrivate::requestDefaultAgentFinished(QDBusPendingCallWatcher *watcher)
-{
-    const QDBusPendingReply<void> &reply = *watcher;
-    ProxyAgent *proxyAgent = watcher->property("proxyAgent").value<ProxyAgent *>();
-    QString adapterAddress = watcher->property("adapterAddress").toString();
-    watcher->deleteLater();
-
-    if (reply.isError()) {
-        return;
-    }
-
-    AdapterPtr adapter = q->adapterForAddress(adapterAddress);
-    if (adapter) {
-        m_defaultAgents.insert(adapter->ubi(), proxyAgent);
-
-        // Set the adapter to reuse the proxied agent when initiating pairings.
-        adapter->d->m_pairingAgent = proxyAgent->agent();
-    }
-}
-
-QDBusPendingReply<void> ManagerPrivate::unregisterDefaultAgent(AdapterPtr adapter)
-{
-    Q_ASSERT(adapter);
-
-    if (!m_defaultAgents.contains(adapter->ubi())) {
-        return QDBusPendingReply<void>(QDBusMessage::createError(QDBusError::InternalError,
-                QStringLiteral("Agent has not been registered with this adapter")));
-    }
-
-    ProxyAgent *proxyAgent = m_defaultAgents.value(adapter->ubi());
-    QDBusPendingReply<void> reply = adapter->d->m_bluezAdapter->UnregisterAgent(proxyAgent->objectPath());
-
-    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(reply, this);
-    watcher->setProperty("adapterPath", adapter->ubi());
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::unregisterAgentFinished);
-
-    return reply;
-}
-
-void ManagerPrivate::unregisterAgentFinished(QDBusPendingCallWatcher *watcher)
-{
-    const QDBusPendingReply<void> &reply = *watcher;
-    QString adapterPath = watcher->property("adapterPath").toString();
-    watcher->deleteLater();
-
-    if (reply.isError()) {
-        return;
-    }
-
-    m_defaultAgents.remove(adapterPath);
-}
-
-AdapterPtr ManagerPrivate::findAdapterForDefaultAgent(Agent *agent)
-{
-    QHash<QString, ProxyAgent *>::const_iterator i;
-
-    for (i = m_defaultAgents.constBegin(); i != m_defaultAgents.constEnd(); ++i) {
-        const QString &adapterPath = i.key();
-        ProxyAgent *proxyAgent = i.value();
-
-        if (proxyAgent == agent) {
-            return q->adapterForUbi(adapterPath);
-        }
-    }
-
-    return AdapterPtr();
-}
-
-void ManagerPrivate::agentCreated(Agent *agent)
-{
-    // Initialize the agent as per Manager::registerAgent()
-
-    new AgentAdaptor(agent, q);
-
-    if (!DBusConnection::orgBluez().registerObject(agent->objectPath().path(), agent)) {
-        qCWarning(BLUEZQT) << "Cannot register object" << agent->objectPath().path();
-    }
-}
-
-QDBusPendingReply<QDBusObjectPath> ManagerPrivate::createPairedDevice(AdapterPtr adapter, const QString &address)
-{
-    return adapter->d->createPairedDevice(address);
-}
-#endif
 
 } // namespace BluezQt

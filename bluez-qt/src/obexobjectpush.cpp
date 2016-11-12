@@ -27,7 +27,7 @@
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "obexobjectpush1.h"
 #else
-#include "bluezobexobjectpush.h"
+#include "bluez4obexobjectpush.h"
 #endif
 
 namespace BluezQt

@@ -28,7 +28,8 @@
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "dbusproperties.h"
 #else
-#include "obexmanager_p.h"
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
 #endif
 #include "utils.h"
 
@@ -48,13 +49,7 @@ ObexAgentAdaptor::ObexAgentAdaptor(ObexAgent *parent, ObexManager *manager)
 {
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 QString ObexAgentAdaptor::AuthorizePush(const QDBusObjectPath &transfer, const QDBusMessage &msg)
-#else
-QString ObexAgentAdaptor::Authorize(const QDBusObjectPath &transfer, const QString &bt_address,
-                                    const QString &name, const QString &type, qint32 length,
-                                    qint32 time, const QDBusMessage &msg)
-#endif
 {
     msg.setDelayedReply(true);
     m_transferRequest = Request<QString>(OrgBluezObexAgent, msg);
@@ -66,31 +61,7 @@ QString ObexAgentAdaptor::Authorize(const QDBusObjectPath &transfer, const QStri
     const QDBusPendingReply<QVariantMap> &call = dbusProperties.GetAll(Strings::orgBluezObexTransfer1());
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, &ObexAgentAdaptor::getPropertiesFinished);
-#else
-    m_transferRequest.setObjectPushTransferPath(transfer.path());
-
-    // Assemble the map of property values. In BlueZ 4, transfer objects provided by the org.bluez.obex
-    // service for OBEX agents (as opposed to those provided by the org.bluez.obex.client service
-    // for OBEX clients) don't have persistent properties provided by a GetProperties() function;
-    // instead, all values are provided by the AuthorizePush() arguments, so initialize them here.
-    // Note 'Filename' is not added here as it not available in BlueZ 4 and is optional in BlueZ 5.
-    QVariantMap properties;
-    properties.insert(QStringLiteral("Status"), QStringLiteral("queued"));
-    properties.insert(QStringLiteral("Name"), name);
-    properties.insert(QStringLiteral("Type"), type);
-    if (time > 0) {
-        properties.insert(QStringLiteral("Time"), static_cast<quint64>(time));
-    }
-    if (length > 0) {
-        properties.insert(QStringLiteral("Size"), static_cast<quint64>(length));
-    }
-    properties.insert(QStringLiteral("Transferred"), 0);
-
-    // For BlueZ 4 there is only FTP session support, so manually add per-transfer OPP sessions.
-    ObexTransferPtr transferPtr = m_manager->d->newObjectPushTransfer(transfer, properties, bt_address);
-    getPropertiesFinished(transferPtr);
 #endif
-
     return QString();
 }
 
@@ -104,7 +75,6 @@ void ObexAgentAdaptor::Release()
     m_agent->release();
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void ObexAgentAdaptor::getPropertiesFinished(QDBusPendingCallWatcher *watcher)
 {
     const QDBusPendingReply<QVariantMap> &reply = *watcher;
@@ -117,10 +87,6 @@ void ObexAgentAdaptor::getPropertiesFinished(QDBusPendingCallWatcher *watcher)
 
     ObexTransferPtr transfer = ObexTransferPtr(new ObexTransfer(m_transferPath, reply.value()));
     transfer->d->q = transfer.toWeakRef();
-#else
-void ObexAgentAdaptor::getPropertiesFinished(ObexTransferPtr transfer)
-{
-#endif
 
     ObexSessionPtr session = m_manager->sessionForPath(transfer->objectPath());
     Q_ASSERT(session);

@@ -33,9 +33,8 @@
 #include "bluezagentmanager1.h"
 #include "bluezprofilemanager1.h"
 #else
-#include "bluezmanager.h"
-#include "agent.h"
-#include <QSet>
+#include "bluezqt_dbustypes.h"
+class QDBusPendingCallWatcher;
 #endif
 
 namespace BluezQt
@@ -45,14 +44,16 @@ namespace BluezQt
 typedef org::freedesktop::DBus::ObjectManager DBusObjectManager;
 typedef org::bluez::AgentManager1 BluezAgentManager;
 typedef org::bluez::ProfileManager1 BluezProfileManager;
-#else
-typedef org::bluez::Manager BluezManager;
 #endif
 
 class Manager;
 class Adapter;
 class Device;
 class AdapterPrivate;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+class ManagerBluez4;
+#endif
 
 class ManagerPrivate : public QObject
 {
@@ -64,20 +65,15 @@ public:
     void init();
     void nameHasOwnerFinished(QDBusPendingCallWatcher *watcher);
     void load();
-
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     void getManagedObjectsFinished(QDBusPendingCallWatcher *watcher);
-#endif
     void clear();
 
     AdapterPtr findUsableAdapter() const;
 
     void serviceRegistered();
     void serviceUnregistered();
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     void interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces);
     void interfacesRemoved(const QDBusObjectPath &objectPath, const QStringList &interfaces);
-#endif
     void adapterRemoved(const AdapterPtr &adapter);
     void adapterPoweredChanged(bool powered);
     void rfkillStateChanged(Rfkill::State state);
@@ -90,41 +86,12 @@ public:
     bool rfkillBlocked() const;
     void setUsableAdapter(const AdapterPtr &adapter);
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    void managerInitialized();
-    void managerDefaultAdapterFinished(QDBusPendingCallWatcher *watcher);
-    void managerAdapterAdded(const QDBusObjectPath &objectPath);
-    void managerAdapterRemoved(const QDBusObjectPath &objectPath);
-
-    void adapterGetPropertiesFinished(QDBusPendingCallWatcher *watcher);
-    void adapterPropertyChanged(const QString &property, const QDBusVariant &value);
-
-    void updateDeviceList(const QString &adapterPath, const QVariant &deviceList);
-    QDBusPendingCallWatcher *addDeviceByPath(const QDBusObjectPath &objectPath);
-    void deviceGetPropertiesFinished(QDBusPendingCallWatcher *watcher);
-    void deviceFound(const QString &address, const QVariantMap &values);
-    void deviceRemoved(const QDBusObjectPath &objectPath);
-
-    QDBusPendingReply<void> requestDefaultAgent(AdapterPtr adapter, Agent *agent);
-    void requestDefaultAgentFinished(QDBusPendingCallWatcher *watcher);
-    QDBusPendingReply<void> unregisterDefaultAgent(AdapterPtr adapter);
-    void unregisterAgentFinished(QDBusPendingCallWatcher *watcher);
-    AdapterPtr findAdapterForDefaultAgent(Agent *agent);
-    void agentCreated(Agent *agent);
-
-    QDBusPendingReply<QDBusObjectPath> createPairedDevice(AdapterPtr adapter, const QString &address);
-#endif
-
     Manager *q;
     Rfkill *m_rfkill;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     DBusObjectManager *m_dbusObjectManager;
     BluezAgentManager *m_bluezAgentManager;
     BluezProfileManager *m_bluezProfileManager;
-#else
-    BluezManager *m_bluezManager;
-    QSet<QDBusPendingCallWatcher *> m_pendingInitializationWatchers;
-    QHash<QString, ProxyAgent *> m_defaultAgents;
 #endif
 
     QHash<QString, AdapterPtr> m_adapters;
@@ -136,6 +103,11 @@ public:
     bool m_loaded;
     bool m_adaptersLoaded;
     bool m_bluetoothBlocked;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    void bluez4ManagerLoaded(bool success, const QString &errorMessage);
+    ManagerBluez4 *m_bluez4;
+#endif
 
 Q_SIGNALS:
     void initError(const QString &errorText);

@@ -512,6 +512,8 @@ private:
     friend class DevicePrivate;
     friend class ManagerPrivate;
     friend class Adapter;
+
+    friend class ManagerBluez4;
 };
 
 } // namespace BluezQt

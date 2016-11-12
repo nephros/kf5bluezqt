@@ -28,8 +28,6 @@
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "obextransfer1.h"
 #include "dbusproperties.h"
-#else
-#include "bluezobextransfer.h"
 #endif
 
 namespace BluezQt
@@ -39,7 +37,7 @@ namespace BluezQt
 typedef org::bluez::obex::Transfer1 BluezTransfer;
 typedef org::freedesktop::DBus::Properties DBusProperties;
 #else
-typedef org::bluez::obex::Transfer BluezTransfer;
+class ObexTransferBluez4;
 #endif
 
 class ObexTransferPrivate : public QObject
@@ -54,23 +52,10 @@ public:
     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
     void sessionRemoved(const ObexSessionPtr &session);
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    // from org.bluez.obex service
-    void orgBluezObexTransferProgress(qint32 total, qint32 transferred);
-
-    // from org.bluez.obex.client service
-    void orgBluezObexClientTransferPropertyChanged(const QString &property, const QDBusVariant &value);
-    void orgBluezObexClientTransferComplete();
-    void orgBluezObexClientTransferError(const QString &code, const QString &message);
-#endif
-
     QWeakPointer<ObexTransfer> q;
-    BluezTransfer *m_bluezTransfer;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    BluezTransfer *m_bluezTransfer;
     DBusProperties *m_dbusProperties;
-#else
-    bool m_clientOrigin;
-    QVariantMap m_properties;
 #endif
 
     ObexTransfer::Status m_status;
@@ -81,6 +66,10 @@ public:
     quint64 m_transferred;
     QString m_fileName;
     bool m_suspendable;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    ObexTransferBluez4 *m_bluez4;
+#endif
 };
 
 } // namespace BluezQt

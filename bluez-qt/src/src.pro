@@ -19,6 +19,7 @@ equals(KF5BLUEZQT_BLUEZ_VERSION, 5) {
     include(interfaces/interfaces.pri)
 } else {
     DEFINES += "KF5BLUEZQT_BLUEZ_VERSION=4"
+    include(bluez4/bluez4.pri)
     include(interfaces/bluez4/bluez4.pri)
 }
 
@@ -104,7 +105,10 @@ HEADERS += \
     profile_p.h \
     debug.h \
     utils.h \
-    rfkill.h
+    rfkill.h \
+    bluezqt_dbustypes.h \
+    services.h \
+    macros.h
 
 target.path = $$[QT_INSTALL_LIBS]
 

@@ -26,7 +26,7 @@
 #include "macros.h"
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
-#include "agent.h"
+#include "bluez4/adapter_bluez4_p.h"
 #endif
 
 namespace BluezQt
@@ -36,8 +36,6 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
     : QObject()
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_dbusProperties(0)
-#else
-    , m_pairingAgent(0)
 #endif
     , m_adapterClass(0)
     , m_powered(0)
@@ -46,9 +44,13 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
     , m_pairable(false)
     , m_pairableTimeout(0)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_bluezAdapter = new BluezAdapter(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
 
     init(properties);
+#else
+    m_bluez4 = new AdapterBluez4(this, path, properties);
+#endif
 }
 
 void AdapterPrivate::init(const QVariantMap &properties)
@@ -64,9 +66,6 @@ void AdapterPrivate::init(const QVariantMap &properties)
     //    powered off when the PropertiesChanged signal is emitted ...
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &AdapterPrivate::propertiesChanged, Qt::QueuedConnection);
-#else
-    connect(m_bluezAdapter, &BluezAdapter::PropertyChanged,
-            this, &AdapterPrivate::adapterPropertyChanged);
 #endif
 
     // Init properties
@@ -106,36 +105,20 @@ QDBusPendingReply<> AdapterPrivate::setDBusProperty(const QString &name, const Q
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return m_dbusProperties->Set(Strings::orgBluezAdapter1(), name, QDBusVariant(value));
 #else
-    return m_bluezAdapter->SetProperty(name, QDBusVariant(value));
+    return m_bluez4->setDBusProperty(name, value);
 #endif
 }
 
 void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
 {
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezAdapter1()) {
         return;
     }
-#else
-    Q_UNUSED(interface)
-#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
         const QVariant &value = i.value();
         const QString &property = i.key();
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-        if (property == QLatin1String("Name")) {
-            // In BlueZ 4 there is only 'Name', no 'Alias'
-            if (m_name != value.toString()) {
-                m_name = value.toString();
-                Q_EMIT q.data()->nameChanged(m_name);
-                Q_EMIT q.data()->systemNameChanged(m_name);
-            }
-            continue;
-        }
-#endif
 
         if (property == QLatin1String("Name")) {
             PROPERTY_CHANGED(m_name, toString, systemNameChanged);
@@ -170,42 +153,5 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
 
     Q_EMIT q.data()->adapterChanged(q.toStrongRef());
 }
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-QDBusPendingReply<QDBusObjectPath> AdapterPrivate::createPairedDevice(const QString &address)
-{
-    if (!m_pairingAgent) {
-        return QDBusMessage::createError(QStringLiteral("org.bluez.Error.Failed"),
-                                         QStringLiteral("No pairing agent set!"));
-    }
-
-    // Create a single-use agent that is a proxy of the default agent.
-    ProxyAgent *proxyAgent = createProxyForAgent(m_pairingAgent, "/bluez4_pairing_request_agent_proxy");
-    connect(proxyAgent, &ProxyAgent::agentReleased, proxyAgent, &ProxyAgent::deleteLater);
-
-    return m_bluezAdapter->CreatePairedDevice(address, proxyAgent->objectPath(),
-            ProxyAgent::capabilityToString(proxyAgent->capability()));
-}
-
-QDBusPendingReply<void> AdapterPrivate::cancelDeviceCreation(const QString &address)
-{
-    return m_bluezAdapter->CancelDeviceCreation(address);
-}
-
-ProxyAgent *AdapterPrivate::createProxyForAgent(Agent *agent, const QString &proxyAgentPath)
-{
-    Q_ASSERT(agent);
-
-    ProxyAgent *proxyAgent = new ProxyAgent(agent, proxyAgentPath, q.data());
-    emit agentCreated(proxyAgent);
-
-    return proxyAgent;
-}
-
-void AdapterPrivate::adapterPropertyChanged(const QString &property, const QDBusVariant &value)
-{
-    INVOKE_PROPERTIES_CHANGED(QStringLiteral("org.bluez.Adapter"), this, property, value.variant());
-}
-#endif
 
 } // namespace BluezQt
