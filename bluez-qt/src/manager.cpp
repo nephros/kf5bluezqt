@@ -33,6 +33,10 @@
 #include "utils.h"
 #include "debug.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/manager_bluez4_p.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -158,7 +162,6 @@ PendingCall *Manager::registerAgent(Agent *agent)
     if (!d->m_bluezAgentManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
-#endif
 
     QString capability;
 
@@ -180,7 +183,6 @@ PendingCall *Manager::registerAgent(Agent *agent)
         break;
     }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     new AgentAdaptor(agent, this);
 
     if (!DBusConnection::orgBluez().registerObject(agent->objectPath().path(), agent)) {
@@ -204,20 +206,21 @@ PendingCall *Manager::unregisterAgent(Agent *agent)
     if (!d->m_bluezAgentManager) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Manager not operational!"));
     }
+#endif
 
     DBusConnection::orgBluez().unregisterObject(agent->objectPath().path());
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezAgentManager->UnregisterAgent(agent->objectPath()),
                            PendingCall::ReturnVoid, this);
 #else
     // registerAgent() is a no-op for non-default-agents in BlueZ 4, so unregistration is only
     // necessary if the agent was set as a default agent.
-    AdapterPtr adapter = d->findAdapterForDefaultAgent(agent);
+    AdapterPtr adapter = d->m_bluez4->findAdapterForDefaultAgent(agent);
     if (!adapter) {
         return new PendingCall(PendingCall::NoError, QString(), this);
     }
-
-    return new PendingCall(d->unregisterDefaultAgent(adapter), PendingCall::ReturnVoid, this);
+    return new PendingCall(d->m_bluez4->unregisterDefaultAgent(adapter), PendingCall::ReturnVoid, this);
 #endif
 }
 
@@ -236,9 +239,8 @@ PendingCall *Manager::requestDefaultAgent(Agent *agent)
     if (d->m_adapters.isEmpty()) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("No adapters available!"), this);
     }
-
     AdapterPtr adapter = d->m_usableAdapter ? d->m_usableAdapter : d->m_adapters.values().first();
-    return new PendingCall(d->requestDefaultAgent(adapter, agent), PendingCall::ReturnVoid, this);
+    return new PendingCall(d->m_bluez4->requestDefaultAgent(adapter, agent), PendingCall::ReturnVoid, this);
 #endif
 }
 
@@ -288,15 +290,15 @@ PendingCall *Manager::pairWithDevice(const QString &address)
     if (device) {
         return device->pair();
     }
+
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(PendingCall::InternalError, QStringLiteral("Device unknown!"), this);
 #else
     if (d->m_adapters.isEmpty()) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("No adapters available!"), this);
     }
-
     AdapterPtr adapter = d->m_usableAdapter ? d->m_usableAdapter : d->m_adapters.values().first();
-    return new PendingCall(d->createPairedDevice(adapter, address), PendingCall::ReturnObjectPath, this);
+    return new PendingCall(d->m_bluez4->createPairedDevice(adapter, address), PendingCall::ReturnObjectPath, this);
 #endif
 }
 

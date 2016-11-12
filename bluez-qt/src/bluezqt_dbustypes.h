@@ -36,12 +36,4 @@ Q_DECLARE_METATYPE(QVariantMapMap)
 typedef QMap<QDBusObjectPath, QVariantMapMap> DBusManagerStruct;
 Q_DECLARE_METATYPE(DBusManagerStruct)
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-typedef QMap<quint32, QString> DeviceServiceMap;
-Q_DECLARE_METATYPE(DeviceServiceMap)
-
-typedef QPair<QDBusObjectPath, QVariantMap> ObexTransferInfo;
-Q_DECLARE_METATYPE(ObexTransferInfo)
-#endif
-
 #endif // BLUEZQT_DBUSTYPES_H

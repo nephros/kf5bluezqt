@@ -25,6 +25,10 @@
 #include "utils.h"
 #include "macros.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "debug.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -53,6 +57,8 @@ InputPrivate::InputPrivate(const QString &path, const QVariantMap &properties)
 
     connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
             this, &InputPrivate::propertiesChanged, Qt::QueuedConnection);
+#else
+    Q_UNUSED(path)
 #endif
 
     // Init properties
@@ -63,13 +69,9 @@ void InputPrivate::propertiesChanged(const QString &interface, const QVariantMap
 {
     Q_UNUSED(invalidated)
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (interface != Strings::orgBluezInput1()) {
         return;
     }
-#else
-    Q_UNUSED(interface)
-#endif
 
     QVariantMap::const_iterator i;
     for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
@@ -99,6 +101,9 @@ InputPtr Input::toSharedPtr() const
 
 Input::ReconnectMode Input::reconnectMode() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    qCWarning(BLUEZQT) << "Input::reconnectMode() not available in BlueZ 4!";
+#endif
     return d->m_reconnectMode;
 }
 

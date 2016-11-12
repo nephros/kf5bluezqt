@@ -26,6 +26,10 @@
 #include "device_p.h"
 #include "pendingcall.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/adapter_bluez4_p.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -47,7 +51,11 @@ AdapterPtr Adapter::toSharedPtr() const
 
 QString Adapter::ubi() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_bluezAdapter->path();
+#else
+    return d->m_bluez4->m_bluez4Adapter->path();
+#endif
 }
 
 QString Adapter::address() const
@@ -57,23 +65,13 @@ QString Adapter::address() const
 
 QString Adapter::name() const
 {
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_alias;
-#else
-    return d->m_name;
-#endif
 }
 
 PendingCall *Adapter::setName(const QString &name)
 {
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->setDBusProperty(QStringLiteral("Alias"), name),
                            PendingCall::ReturnVoid, this);
-#else
-    // "Alias" property is not present in BlueZ 4
-    return new PendingCall(d->setDBusProperty(QStringLiteral("Name"), name),
-                           PendingCall::ReturnVoid, this);
-#endif
 }
 
 QString Adapter::systemName() const
@@ -173,20 +171,35 @@ DevicePtr Adapter::deviceForAddress(const QString &address) const
 
 PendingCall *Adapter::startDiscovery()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezAdapter->StartDiscovery(),
                            PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(d->m_bluez4->m_bluez4Adapter->StartDiscovery(),
+                           PendingCall::ReturnVoid, this);
+#endif
 }
 
 PendingCall *Adapter::stopDiscovery()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezAdapter->StopDiscovery(),
                            PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(d->m_bluez4->m_bluez4Adapter->StopDiscovery(),
+                           PendingCall::ReturnVoid, this);
+#endif
 }
 
 PendingCall *Adapter::removeDevice(DevicePtr device)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezAdapter->RemoveDevice(QDBusObjectPath(device->ubi())),
                            PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(d->m_bluez4->m_bluez4Adapter->RemoveDevice(QDBusObjectPath(device->ubi())),
+                           PendingCall::ReturnVoid, this);
+#endif
 }
 
 } // namespace BluezQt

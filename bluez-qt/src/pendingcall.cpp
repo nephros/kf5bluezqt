@@ -28,6 +28,11 @@
 #include "bluezqt_dbustypes.h"
 #include "debug.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/bluezqt_dbustypes_bluez4_p.h"
+#include <QDBusMetaType>
+#endif
+
 #include <QTimer>
 #include <QDBusPendingReply>
 #include <QDBusPendingCallWatcher>

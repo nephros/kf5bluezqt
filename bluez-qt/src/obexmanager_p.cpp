@@ -30,12 +30,8 @@
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "dbusobjectmanager.h"
 #else
-#include "obextransfer_p.h"
-#include "pendingcall.h"
-#include "bluezqt_dbustypes.h"
-#include <QDBusMessage>
+#include "bluez4/obexmanager_bluez4_p.h"
 #endif
-
 
 #include <QDBusServiceWatcher>
 
@@ -44,42 +40,15 @@ namespace BluezQt
 
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 typedef org::freedesktop::DBus::ObjectManager DBusObjectManager;
-#else
-ObexManagerNotifier::ObexManagerNotifier(ObexManagerPrivate *parent)
-    : QDBusAbstractAdaptor(parent)
-    , m_manager(parent)
-{
-    qDBusRegisterMetaType<QVariantMapMap>();
-}
-
-QMap<QString, QVariantMap> ObexManagerNotifier::getSessions()
-{
-    return m_manager->sessionProperties();
-}
-
-QMap<QString, QVariantMap> ObexManagerNotifier::getTransfers()
-{
-    return m_manager->transferProperties();
-}
-
-void ObexManagerNotifier::setTransferAborted(const QString &transferPath)
-{
-    m_manager->setTransferAborted(transferPath);
-}
-
 #endif
 
 ObexManagerPrivate::ObexManagerPrivate(ObexManager *q)
     : QObject(q)
     , q(q)
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_obexClient(0)
     , m_obexAgentManager(0)
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     , m_dbusObjectManager(0)
-#else
-    , m_managerNotifier(0)
-    , m_initializedSessions(false)
-    , m_initializedTransfers(false)
 #endif
     , m_initialized(false)
     , m_obexRunning(false)
@@ -164,39 +133,27 @@ void ObexManagerPrivate::load()
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, &ObexManagerPrivate::getManagedObjectsFinished);
 #else
-    m_obexClient = new ObexClient(QStringLiteral("org.bluez.obex.client"), "/", DBusConnection::orgBluezObex(), this);
-    m_obexAgentManager = new ObexAgentManager(Strings::orgBluezObex(), "/", DBusConnection::orgBluezObex(), this);
-
-    connect(m_obexAgentManager, &ObexAgentManager::TransferStarted,
-            this, &ObexManagerPrivate::transferStarted);
-    connect(m_obexAgentManager, &ObexAgentManager::TransferCompleted,
-            this, &ObexManagerPrivate::transferCompleted);
-
-    // Fetch known sessions from the "system" ObexManager
-    QDBusMessage getSessionsCall = QDBusMessage::createMethodCall(ObexManagerNotifier::service(),
-                                                       ObexManagerNotifier::objectPath(),
-                                                       ObexManagerNotifier::interface(),
-                                                       QStringLiteral("getSessions"));
-
-    QDBusPendingCallWatcher *getSessionsWatcher = new QDBusPendingCallWatcher(ObexManagerNotifier::connection().asyncCall(getSessionsCall));
-    connect(getSessionsWatcher, &QDBusPendingCallWatcher::finished, this, &ObexManagerPrivate::getSessionsFinished);
-
-    // Fetch known transfers from the "system" ObexManager, including those that are pending
-    // Authorize() and therefore cannot normally be fetched as BlueZ 4 would not have emitted
-    // transferStarted() for them yet.
-    QDBusMessage getTransfersCall = QDBusMessage::createMethodCall(ObexManagerNotifier::service(),
-                                                       ObexManagerNotifier::objectPath(),
-                                                       ObexManagerNotifier::interface(),
-                                                       QStringLiteral("getTransfers"));
-
-    QDBusPendingCallWatcher *getTransfersWatcher = new QDBusPendingCallWatcher(ObexManagerNotifier::connection().asyncCall(getTransfersCall));
-    connect(getTransfersWatcher, &QDBusPendingCallWatcher::finished, this, &ObexManagerPrivate::getTransfersFinished);
+    m_bluez4 = new ObexManagerBluez4(this);
+    connect(m_bluez4, &ObexManagerBluez4::loaded, this, &ObexManagerPrivate::bluez4ObexManagerLoaded);
+    m_bluez4->load();
 #endif
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+void ObexManagerPrivate::bluez4ObexManagerLoaded()
+{
+    // Initialize here as per getManagedObjectsFinished().
+    m_loaded = true;
+    m_initialized = true;
+
+    Q_EMIT q->operationalChanged(true);
+    Q_EMIT initFinished();
+}
+#endif
+
 void ObexManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     const QDBusPendingReply<DBusManagerStruct> &reply = *watcher;
     watcher->deleteLater();
 
@@ -235,8 +192,10 @@ void ObexManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watc
 
     Q_EMIT q->operationalChanged(true);
     Q_EMIT initFinished();
-}
+#else
+    Q_UNUSED(watcher)
 #endif
+}
 
 void ObexManagerPrivate::clear()
 {
@@ -249,6 +208,7 @@ void ObexManagerPrivate::clear()
         Q_EMIT q->sessionRemoved(session);
     }
 
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     // Delete all other objects
     if (m_obexClient) {
         m_obexClient->deleteLater();
@@ -260,10 +220,14 @@ void ObexManagerPrivate::clear()
         m_obexAgentManager = Q_NULLPTR;
     }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     if (m_dbusObjectManager) {
         m_dbusObjectManager->deleteLater();
         m_dbusObjectManager = Q_NULLPTR;
+    }
+#else
+    if (m_bluez4) {
+        m_bluez4->deleteLater();
+        m_bluez4 = Q_NULLPTR;
     }
 #endif
 }
@@ -288,7 +252,6 @@ void ObexManagerPrivate::serviceUnregistered()
     Q_EMIT q->operationalChanged(false);
 }
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void ObexManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
 {
     const QString &path = objectPath.path();
@@ -300,9 +263,7 @@ void ObexManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, cons
         }
     }
 }
-#endif
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, const QStringList &interfaces)
 {
     const QString &path = objectPath.path();
@@ -313,7 +274,6 @@ void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, co
         }
     }
 }
-#endif
 
 void ObexManagerPrivate::addSession(const QString &sessionPath, const QVariantMap &properties)
 {
@@ -337,251 +297,5 @@ void ObexManagerPrivate::removeSession(const QString &sessionPath)
 void ObexManagerPrivate::dummy()
 {
 }
-
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-void ObexManagerPrivate::getSessionsFinished(QDBusPendingCallWatcher *watcher)
-{
-    const QDBusPendingReply<QVariantMapMap> &reply = *watcher;
-    watcher->deleteLater();
-
-    m_initializedSessions = true;
-
-    if (!reply.isError()) {
-        QVariantMapMap::const_iterator it;
-        const QVariantMapMap &sessions = reply.value();
-
-        for (it = sessions.constBegin(); it != sessions.constEnd(); ++it) {
-            const QString &path = it.key();
-            const QVariantMap &properties = it.value();
-
-            addSession(path, properties);
-        }
-    } else if (reply.error().name() != QStringLiteral("org.freedesktop.DBus.Error.ServiceUnknown")) {
-        // Error can be ignored as it occurs if registerAgent() has not yet been called on any
-        // managers, which means this is probably the manager that will be used to register agents.
-        qCWarning(BLUEZQT) << "Failed to find existing sessions:" << reply.error().message();
-    }
-
-    if (m_initializedSessions && m_initializedTransfers) {
-        completeInit();
-    }
-}
-
-void ObexManagerPrivate::getTransfersFinished(QDBusPendingCallWatcher *watcher)
-{
-    const QDBusPendingReply<QVariantMapMap> &reply = *watcher;
-    watcher->deleteLater();
-
-    m_initializedTransfers = true;
-
-    if (!reply.isError()) {
-        QVariantMapMap::const_iterator it;
-        const QVariantMapMap &transfers = reply.value();
-
-        for (it = transfers.constBegin(); it != transfers.constEnd(); ++it) {
-            const QString &path = it.key();
-            const QVariantMap &properties = it.value();
-
-            if (!m_oppTransfers.contains(path)) {
-                ObexTransferPtr transfer = ObexTransferPtr(new ObexTransfer(path, properties));
-                transfer->d->q = transfer.toWeakRef();
-                m_oppTransfers.insert(path, transfer);
-            }
-        }
-    } else if (reply.error().name() != QStringLiteral("org.freedesktop.DBus.Error.ServiceUnknown")) {
-        // Error can be ignored as it occurs if registerAgent() has not yet been called on any
-        // managers, which means this is probably the manager that will be used to register agents.
-        qCWarning(BLUEZQT) << "Failed to find existing transfers:" << reply.error().message();
-    }
-
-    if (m_initializedSessions && m_initializedTransfers) {
-        completeInit();
-    }
-}
-
-void ObexManagerPrivate::completeInit()
-{
-    if (!ObexManagerNotifier::connection().connect(QString(), QString(), ObexManagerNotifier::interface(),
-                                                   QStringLiteral("objectPushTransferCreated"),
-                                                   this, SLOT(objectPushTransferCreated(QString,QVariantMap,QString,QVariantMap)))) {
-        qCWarning(BLUEZQT) << "Failed to connect to objectPushTransferCreated() signal";
-    }
-    if (!ObexManagerNotifier::connection().connect(QString(), QString(), ObexManagerNotifier::interface(),
-                                                   QStringLiteral("objectPushTransferFinished"),
-                                                   this, SLOT(objectPushTransferFinished(QString,QString,bool)))) {
-        qCWarning(BLUEZQT) << "Failed to connect to objectPushTransferFinished() signal";
-    }
-
-    // Complete initialization as per getManagedObjectsFinished()
-    m_loaded = true;
-    m_initialized = true;
-
-    Q_EMIT q->operationalChanged(true);
-    Q_EMIT initFinished();
-}
-
-ObexTransferPtr ObexManagerPrivate::newObjectPushTransfer(const QDBusObjectPath &transferPath, const QVariantMap &transferProperties, const QString &destinationAddress)
-{
-    ObexTransferPtr transfer = ObexTransferPtr(new ObexTransfer(transferPath.path(), transferProperties));
-    transfer->d->q = transfer.toWeakRef();
-    m_oppTransfers.insert(transferPath.path(), transfer);
-
-    // Source, Channel and Target properties not added; not supportable in BlueZ 4.
-    QVariantMap sessionProperties;
-    sessionProperties.insert(QStringLiteral("Destination"), destinationAddress);
-    sessionProperties.insert(QStringLiteral("Root"), QDir::home().absolutePath());
-    sessionProperties.insert(QStringLiteral("org.kde.bluezqt.ObjectPushTransfer"), transferPath.path());
-
-    QString sessionPath = QStringLiteral("/org/bluez/obex/server/session") + QString::number(m_sessions.count());
-    addSession(sessionPath, sessionProperties);
-
-    notifyObexManagers(QStringLiteral("objectPushTransferCreated"),
-                       QVariantList() << transferPath.path() << transferProperties
-                                      << sessionPath << sessionProperties);
-    return transfer;
-}
-
-void ObexManagerPrivate::objectPushTransferCreated(const QString &transferPath, const QVariantMap &transferProperties,
-                                                   const QString &sessionPath, const QVariantMap &sessionProperties)
-{
-    if (!m_oppTransfers.contains(transferPath)) {
-        ObexTransferPtr transfer = ObexTransferPtr(new ObexTransfer(transferPath, transferProperties));
-        transfer->d->q = transfer.toWeakRef();
-        m_oppTransfers.insert(transferPath, transfer);
-    }
-
-    if (!m_sessions.contains(sessionPath)) {
-        addSession(sessionPath, sessionProperties);
-    }
-}
-
-void ObexManagerPrivate::objectPushTransferFinished(const QString &transferPath, const QString &sessionPath, bool success)
-{
-    Q_UNUSED(sessionPath);
-
-    transferCompleted(QDBusObjectPath(transferPath), success);
-}
-
-void ObexManagerPrivate::transferStarted(const QDBusObjectPath &objectPath)
-{
-    ObexTransferPtr transfer = m_oppTransfers.value(objectPath.path());
-    if (!transfer.isNull()) {
-        transfer->setTransferProperty(QStringLiteral("Status"), QStringLiteral("active"));
-    }
-}
-
-void ObexManagerPrivate::transferCompleted(const QDBusObjectPath &objectPath, bool success)
-{
-    ObexTransferPtr transfer = m_oppTransfers.value(objectPath.path());
-
-    if (!transfer.isNull()) {
-        transfer->setTransferProperty(QStringLiteral("Status"),
-                                      success ? QStringLiteral("complete") : QStringLiteral("error"));
-        m_oppTransfers.remove(objectPath.path());
-    }
-
-    QString sessionPath = sessionForObjectPushTransfer(objectPath);
-    if (!sessionPath.isEmpty()) {
-        removeSession(sessionPath);
-    }
-}
-
-void ObexManagerPrivate::createSessionFinished(PendingCall *call)
-{
-    if (call->error()) {
-        return;
-    }
-
-    QString destination = call->property("destination").toString();
-    QVariantMap args = call->property("args").toMap();
-    if (destination.isEmpty()) {
-        qCWarning(BLUEZQT) << "No destination provided for created session";
-        return;
-    }
-    if (args.isEmpty()) {
-        qCWarning(BLUEZQT) << "No args provided for created session";
-        return;
-    }
-
-    addSession(destination, args);
-}
-
-void ObexManagerPrivate::removeSessionFinished(PendingCall *call)
-{
-    if (call->error()) {
-        return;
-    }
-
-    QString session = call->property("session").toString();
-    if (session.isEmpty()) {
-        qCWarning(BLUEZQT) << "No session path provided for removed session";
-        return;
-    }
-
-    removeSession(session);
-}
-
-void ObexManagerPrivate::setTransferAborted(const QString &transferPath)
-{
-    // For BlueZ 4 OPP sessions are manually manged, and there is no way to detect when a transfer
-    // is rejected by Authorize() and thus the session and transfer should be removed, so the
-    // manager depends on this method being called in those cases.
-
-    Q_FOREACH (ObexSessionPtr session, m_sessions) {
-        if (session->d->m_oppTransferPath == transferPath) {
-            notifyObexManagers(QStringLiteral("objectPushTransferFinished"),
-                               QVariantList() << transferPath << session->d->m_sessionPath << false);
-            break;
-        }
-    }
-}
-
-void ObexManagerPrivate::notifyObexManagers(const QString &signalName, const QVariantList &args)
-{
-    QDBusMessage message = QDBusMessage::createSignal("/", ObexManagerNotifier::interface(), signalName);
-    message.setArguments(args);
-
-    if (!ObexManagerNotifier::connection().send(message)) {
-        qCWarning(BLUEZQT) << "Failed to notify OBEX managers of signal" << signalName
-                           << "with args" << args;
-    }
-}
-
-QVariantMapMap ObexManagerPrivate::sessionProperties() const
-{
-    QVariantMapMap properties;
-
-    Q_FOREACH (ObexSessionPtr session, m_sessions) {
-        properties.insert(session->d->m_sessionPath, session->d->m_properties);
-    }
-
-    return properties;
-}
-
-QVariantMapMap ObexManagerPrivate::transferProperties() const
-{
-    QVariantMapMap properties;
-    QHash<QString, ObexTransferPtr>::const_iterator it;
-
-    for (it = m_oppTransfers.constBegin(); it != m_oppTransfers.constEnd(); ++it) {
-        const QString &path = it.key();
-        const ObexTransferPtr &transfer = it.value();
-
-        properties.insert(path, transfer->d->m_properties);
-    }
-
-    return properties;
-}
-
-QString ObexManagerPrivate::sessionForObjectPushTransfer(const QDBusObjectPath &transferPath)
-{
-    Q_FOREACH (ObexSessionPtr session, m_sessions) {
-        if (session->d->m_oppTransferPath == transferPath.path()) {
-            return session->d->m_sessionPath;
-        }
-    }
-    return QString();
-}
-#endif
 
 } // namespace BluezQt

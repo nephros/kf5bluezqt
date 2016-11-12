@@ -44,16 +44,4 @@
         Q_EMIT q.data()->signal(var); \
     }
 
-// Calls propertiesChanged() for a single property value change
-#define INVOKE_PROPERTIES_CHANGED(interface, obj, property, value) {\
-    QVariantMap changed; \
-    QStringList invalidated; \
-    if (value.isValid()) { \
-        changed[property] = value; \
-    } else { \
-        invalidated << property; \
-    } \
-    obj->propertiesChanged(interface, changed, invalidated); \
-}
-
 #endif // BLUEZQT_MACROS_H

@@ -40,33 +40,19 @@ class ObexManager;
 class ObexAgentAdaptor : public QDBusAbstractAdaptor
 {
     Q_OBJECT
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     Q_CLASSINFO("D-Bus Interface", "org.bluez.obex.Agent1")
-#else
-    Q_CLASSINFO("D-Bus Interface", "org.bluez.obex.Agent")
-#endif
 
 public:
     explicit ObexAgentAdaptor(ObexAgent *parent, ObexManager *manager);
 
 public Q_SLOTS:
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     QString AuthorizePush(const QDBusObjectPath &transfer, const QDBusMessage &msg);
-#else
-    QString Authorize(const QDBusObjectPath &transfer, const QString &bt_address,
-                      const QString &name, const QString &type, qint32 length,
-                      qint32 time, const QDBusMessage &msg);
-#endif
 
     Q_NOREPLY void Cancel();
     Q_NOREPLY void Release();
 
 private Q_SLOTS:
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     void getPropertiesFinished(QDBusPendingCallWatcher *watcher);
-#else
-    void getPropertiesFinished(ObexTransferPtr transfer);
-#endif
 
 private:
     ObexAgent *m_agent;

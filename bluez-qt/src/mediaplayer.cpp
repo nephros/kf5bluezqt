@@ -23,7 +23,6 @@
 #include "mediaplayer.h"
 #include "mediaplayer_p.h"
 #include "pendingcall.h"
-
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
 #include "debug.h"
 #endif
@@ -85,12 +84,10 @@ MediaPlayerPtr MediaPlayer::toSharedPtr() const
 
 QString MediaPlayer::name() const
 {
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-    return d->m_name;
-#else
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
     qCWarning(BLUEZQT) << "MediaPlayer::name() not available in BlueZ 4!";
-    return QString();
 #endif
+    return d->m_name;
 }
 
 MediaPlayer::Equalizer MediaPlayer::equalizer() const
@@ -133,12 +130,10 @@ MediaPlayer::Status MediaPlayer::status() const
 
 MediaPlayerTrack MediaPlayer::track() const
 {
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-    return d->m_track;
-#else
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
     qCWarning(BLUEZQT) << "MediaPlayer::track() not available in BlueZ 4!";
-    return MediaPlayerTrack();
 #endif
+    return d->m_track;
 }
 
 quint32 MediaPlayer::position() const

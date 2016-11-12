@@ -36,6 +36,9 @@ Profile::Profile(QObject *parent)
     : QObject(parent)
     , d(new ProfilePrivate)
 {
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    qCWarning(BLUEZQT) << "Profile class not available in BlueZ 4!";
+#endif
 }
 
 Profile::~Profile()

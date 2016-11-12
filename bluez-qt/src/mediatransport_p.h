@@ -24,14 +24,14 @@
 #define BLUEZQT_MEDIATRANSPORT_P_H
 
 #include <QObject>
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include <QDBusPendingReply>
+#endif
 
 #include "mediatransport.h"
-
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "bluezmediatransport1.h"
 #include "dbusproperties.h"
-#else
-#include "bluezmediatransport.h"
 #endif
 
 namespace BluezQt
@@ -41,7 +41,7 @@ namespace BluezQt
 typedef org::bluez::MediaTransport1 BluezMediaTransport;
 typedef org::freedesktop::DBus::Properties DBusProperties;
 #else
-typedef org::bluez::MediaTransport BluezMediaTransport;
+class MediaTransportBluez4;
 #endif
 
 class MediaTransportPrivate : public QObject
@@ -56,13 +56,9 @@ public:
     QDBusPendingReply<> setDBusProperty(const QString &name, const QVariant &value);
     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    void mediaTransportPropertyChanged(const QString &property, const QDBusVariant &value);
-#endif
-
     QWeakPointer<MediaTransport> q;
-    BluezMediaTransport *m_bluezMediaTransport;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    BluezMediaTransport *m_bluezMediaTransport;
     DBusProperties *m_dbusProperties;
 #endif
 
@@ -72,6 +68,10 @@ public:
     MediaTransport::State m_state;
     quint16 m_delay;
     quint16 m_volume;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    MediaTransportBluez4 *m_bluez4;
+#endif
 };
 
 } // namespace BluezQt

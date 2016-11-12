@@ -25,13 +25,14 @@
 
 #include <QObject>
 #include <QStringList>
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include <QDBusPendingReply>
+#endif
 
 #include "types.h"
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
 #include "bluezdevice1.h"
 #include "dbusproperties.h"
-#else
-#include "bluezdevice.h"
 #endif
 #include "bluezqt_dbustypes.h"
 
@@ -42,7 +43,7 @@ namespace BluezQt
 typedef org::bluez::Device1 BluezDevice;
 typedef org::freedesktop::DBus::Properties DBusProperties;
 #else
-typedef org::bluez::Device BluezDevice;
+class DeviceBluez4;
 #endif
 
 class DevicePrivate : public QObject
@@ -54,10 +55,8 @@ public:
 
     void init(const QVariantMap &properties);
 
-#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     void interfacesAdded(const QString &path, const QVariantMapMap &interfaces);
     void interfacesRemoved(const QString &path, const QStringList &interfaces);
-#endif
 
     QDBusPendingReply<> setDBusProperty(const QString &name, const QVariant &value);
     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
@@ -65,19 +64,10 @@ public:
     void aliasPropertyChanged(const QString &value);
     void classPropertyChanged(quint32 value);
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    QDBusPendingReply<QDBusObjectPath> pair(AdapterPtr adapter);
-    QDBusPendingReply<void> cancelPairing(AdapterPtr adapter);
-    void devicePropertyChanged(const QString &property, const QDBusVariant &value);
-#endif
-
     QWeakPointer<Device> q;
-    BluezDevice *m_bluezDevice;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    BluezDevice *m_bluezDevice;
     DBusProperties *m_dbusProperties;
-#else
-    QDBusInterface *m_inputInterface;
-    QDBusInterface *m_audioInterface;
 #endif
 
     QString m_address;
@@ -98,6 +88,10 @@ public:
     MediaPlayerPtr m_mediaPlayer;
     MediaTransportPtr m_mediaTransport;
     AdapterPtr m_adapter;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    DeviceBluez4 *m_bluez4;
+#endif
 };
 
 } // namespace BluezQt

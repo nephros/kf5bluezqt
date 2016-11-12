@@ -180,10 +180,6 @@ public:
      */
     PendingCall *resume();
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    void setTransferProperty(const QString &property, const QVariant &value);
-#endif
-
 Q_SIGNALS:
     /**
      * Indicates that the status of transfer have changed.
@@ -209,9 +205,7 @@ private:
     friend class ObexAgentAdaptor;
     friend class PendingCallPrivate;
 
-#if KF5BLUEZQT_BLUEZ_VERSION < 5
-    friend class ObexManagerPrivate;
-#endif
+    friend class ObexManagerBluez4;
 };
 
 } // namespace BluezQt

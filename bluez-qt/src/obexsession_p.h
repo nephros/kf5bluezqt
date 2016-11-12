@@ -27,6 +27,7 @@
 #include "obexsession1.h"
 #else
 #include "obexsession.h"
+#include "bluez4/obexsession_bluez4_p.h"
 #endif
 
 namespace BluezQt
@@ -50,10 +51,6 @@ public:
     QWeakPointer<ObexSession> q;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     BluezSession *m_bluezSession;
-#else
-    QString m_sessionPath;
-    QString m_oppTransferPath;
-    QVariantMap m_properties;
 #endif
 
     QString m_source;
@@ -61,6 +58,10 @@ public:
     quint8 m_channel;
     QString m_target;
     QString m_root;
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+    ObexSessionBluez4 m_bluez4;
+#endif
 };
 
 } // namespace BluezQt

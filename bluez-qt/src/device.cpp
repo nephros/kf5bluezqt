@@ -22,8 +22,13 @@
 
 #include "device.h"
 #include "device_p.h"
+#include "adapter.h"
 #include "pendingcall.h"
 #include "utils.h"
+
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/device_bluez4_p.h"
+#endif
 
 namespace BluezQt
 {
@@ -46,7 +51,11 @@ DevicePtr Device::toSharedPtr() const
 
 QString Device::ubi() const
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return d->m_bluezDevice->path();
+#else
+    return d->m_bluez4->m_bluez4Device->path();
+#endif
 }
 
 QString Device::address() const
@@ -274,24 +283,20 @@ PendingCall *Device::connectToDevice()
     // In BlueZ 4 there is no generic Connect(), so try connecting to the Input or Audio services.
     Type deviceType = type();
     if (deviceType >= Keyboard && deviceType <= Peripheral) {
-        if (!d->m_inputInterface) {
-            d->m_inputInterface = new QDBusInterface(Strings::orgBluez(), ubi(),
-                    QStringLiteral("org.bluez.Input"), DBusConnection::orgBluez(), this);
-        }
-        return new PendingCall(d->m_inputInterface->asyncCall(QStringLiteral("Connect")), PendingCall::ReturnVoid, this);
+        return new PendingCall(d->m_bluez4->orgBluezInput()->asyncCall(QStringLiteral("Connect")), PendingCall::ReturnVoid, this);
     } else {
-        if (!d->m_audioInterface) {
-            d->m_audioInterface = new QDBusInterface(Strings::orgBluez(), ubi(),
-                    QStringLiteral("org.bluez.Audio"), DBusConnection::orgBluez(), this);
-        }
-        return new PendingCall(d->m_audioInterface->asyncCall(QStringLiteral("Connect")), PendingCall::ReturnVoid, this);
+        return new PendingCall(d->m_bluez4->orgBluezAudio()->asyncCall(QStringLiteral("Connect")), PendingCall::ReturnVoid, this);
     }
 #endif
 }
 
 PendingCall *Device::disconnectFromDevice()
 {
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezDevice->Disconnect(), PendingCall::ReturnVoid, this);
+#else
+    return new PendingCall(d->m_bluez4->m_bluez4Device->Disconnect(), PendingCall::ReturnVoid, this);
+#endif
 }
 
 PendingCall *Device::connectProfile(const QString &uuid)
@@ -322,7 +327,7 @@ PendingCall *Device::pair()
     if (d->m_adapter.isNull()) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Invalid adapter"), this);
     }
-    return new PendingCall(d->pair(d->m_adapter), PendingCall::ReturnObjectPath, this);
+    return new PendingCall(d->m_bluez4->pair(d->m_adapter), PendingCall::ReturnObjectPath, this);
 #endif
 }
 
@@ -334,7 +339,7 @@ PendingCall *Device::cancelPairing()
     if (d->m_adapter.isNull()) {
         return new PendingCall(PendingCall::InternalError, QStringLiteral("Invalid adapter"), this);
     }
-    return new PendingCall(d->cancelPairing(d->m_adapter), PendingCall::ReturnVoid, this);
+    return new PendingCall(d->m_bluez4->cancelPairing(d->m_adapter), PendingCall::ReturnVoid, this);
 #endif
 }
 

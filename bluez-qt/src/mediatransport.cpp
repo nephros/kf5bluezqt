@@ -24,6 +24,10 @@
 #include "mediatransport_p.h"
 #include "pendingcall.h"
 
+#if KF5BLUEZQT_BLUEZ_VERSION < 5
+#include "bluez4/mediatransport_bluez4_p.h"
+#endif
+
 namespace BluezQt
 {
 
@@ -91,7 +95,7 @@ PendingCall *MediaTransport::acquire()
     return new PendingCall(d->m_bluezMediaTransport->Acquire(),
                            PendingCall::ReturnMediaTransportSocketInfo, this);
 #else
-    return new PendingCall(d->m_bluezMediaTransport->Acquire(QStringLiteral("rw")),
+    return new PendingCall(d->m_bluez4->m_bluez4MediaTransport->Acquire(QStringLiteral("rw")),
                            PendingCall::ReturnMediaTransportSocketInfo, this);
 #endif
 }
@@ -113,7 +117,7 @@ PendingCall *MediaTransport::release()
     return new PendingCall(d->m_bluezMediaTransport->Release(),
                            PendingCall::ReturnVoid, this);
 #else
-    return new PendingCall(d->m_bluezMediaTransport->Release(QStringLiteral("rw")),
+    return new PendingCall(d->m_bluez4->m_bluez4MediaTransport->Release(QStringLiteral("rw")),
                            PendingCall::ReturnVoid, this);
 #endif
 }
