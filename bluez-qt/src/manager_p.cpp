@@ -196,8 +196,12 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
         return;
     }
 
-    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesAdded,
-            this, &ManagerPrivate::interfacesAdded);
+    DBusConnection::orgBluez().connect(Strings::orgBluez(),
+                                       QStringLiteral("/"),
+                                       QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+                                       QStringLiteral("InterfacesAdded"),
+                                       this,
+                                       SLOT(interfacesAddedSlot(QDBusObjectPath)));
     connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
             this, &ManagerPrivate::interfacesRemoved);
 
@@ -292,6 +296,36 @@ void ManagerPrivate::serviceUnregistered()
     Q_EMIT q->operationalChanged(false);
 }
 
+void ManagerPrivate::interfacesAddedSlot(const QDBusObjectPath &objectPath)
+{
+    Q_UNUSED(objectPath)
+
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::getInterfacesManagedObjectsFinished);
+#endif
+}
+
+void ManagerPrivate::getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+{
+    const QDBusPendingReply<DBusManagerStruct> &reply = *watcher;
+    watcher->deleteLater();
+
+    if (reply.isError()) {
+        qCWarning(BLUEZQT) << "Failed to find managed objects:" << reply.error().message();
+        return;
+    }
+
+    DBusManagerStruct::const_iterator it;
+    const DBusManagerStruct &managedObjects = reply.value();
+
+    for (it = managedObjects.constBegin(); it != managedObjects.constEnd(); ++it) {
+        const QVariantMapMap &interfaces = it.value();
+
+        interfacesAdded(it.key(), interfaces);
+    }
+}
+
 void ManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
 {
     const QString &path = objectPath.path();
@@ -381,6 +415,10 @@ void ManagerPrivate::rfkillStateChanged(Rfkill::State state)
 
 void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &properties)
 {
+    if (m_adapters.contains(adapterPath)) {
+        return;
+    }
+
     AdapterPtr adapter = AdapterPtr(new Adapter(adapterPath, properties));
     adapter->d->q = adapter.toWeakRef();
     m_adapters.insert(adapterPath, adapter);
@@ -404,6 +442,10 @@ void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &p
 
 void ManagerPrivate::addDevice(const QString &devicePath, const QVariantMap &properties)
 {
+    if (m_devices.contains(devicePath)) {
+        return;
+    }
+
     AdapterPtr adapter = m_adapters.value(properties.value(QStringLiteral("Adapter")).value<QDBusObjectPath>().path());
     Q_ASSERT(adapter);
     DevicePtr device = DevicePtr(new Device(devicePath, properties, adapter));

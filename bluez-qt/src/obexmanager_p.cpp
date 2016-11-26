@@ -125,8 +125,12 @@ void ObexManagerPrivate::load()
     m_dbusObjectManager = new DBusObjectManager(Strings::orgBluezObex(), QStringLiteral("/"),
             DBusConnection::orgBluezObex(), this);
 
-    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesAdded,
-            this, &ObexManagerPrivate::interfacesAdded);
+    DBusConnection::orgBluezObex().connect(Strings::orgBluezObex(),
+                                           QStringLiteral("/"),
+                                           QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+                                           QStringLiteral("InterfacesAdded"),
+                                           this,
+                                           SLOT(interfacesAddedSlot(QDBusObjectPath)));
     connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
             this, &ObexManagerPrivate::interfacesRemoved);
 
@@ -252,6 +256,36 @@ void ObexManagerPrivate::serviceUnregistered()
     Q_EMIT q->operationalChanged(false);
 }
 
+void ObexManagerPrivate::interfacesAddedSlot(const QDBusObjectPath &objectPath)
+{
+    Q_UNUSED(objectPath)
+
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ObexManagerPrivate::getInterfacesManagedObjectsFinished);
+#endif
+}
+
+void ObexManagerPrivate::getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+{
+    const QDBusPendingReply<DBusManagerStruct> &reply = *watcher;
+    watcher->deleteLater();
+
+    if (reply.isError()) {
+        qCWarning(BLUEZQT) << "Failed to find managed objects:" << reply.error().message();
+        return;
+    }
+
+    DBusManagerStruct::const_iterator it;
+    const DBusManagerStruct &managedObjects = reply.value();
+
+    for (it = managedObjects.constBegin(); it != managedObjects.constEnd(); ++it) {
+        const QVariantMapMap &interfaces = it.value();
+
+        interfacesAdded(it.key(), interfaces);
+    }
+}
+
 void ObexManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
 {
     const QString &path = objectPath.path();
@@ -277,6 +311,10 @@ void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, co
 
 void ObexManagerPrivate::addSession(const QString &sessionPath, const QVariantMap &properties)
 {
+    if (m_sessions.contains(sessionPath)) {
+        return;
+    }
+
     ObexSessionPtr session = ObexSessionPtr(new ObexSession(sessionPath, properties));
     session->d->q = session.toWeakRef();
     m_sessions.insert(sessionPath, session);

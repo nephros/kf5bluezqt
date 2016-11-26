@@ -97,6 +97,8 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void dummy();
+    void interfacesAddedSlot(const QDBusObjectPath &objectPath);
+    void getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher);
 };
 
 } // namespace BluezQt
