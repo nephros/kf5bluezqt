@@ -44,6 +44,13 @@ void ManagerBluez4::load()
         return;
     }
 
+    connect(m_bluez4Manager, &Bluez4Manager::DefaultAdapterChanged,
+            this, &ManagerBluez4::managerDefaultAdapterChanged);
+    connect(m_bluez4Manager, &Bluez4Manager::AdapterAdded,
+            this, &ManagerBluez4::managerAdapterAdded);
+    connect(m_bluez4Manager, &Bluez4Manager::AdapterRemoved,
+            this, &ManagerBluez4::managerAdapterRemoved);
+
     QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_bluez4Manager->DefaultAdapter(), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerBluez4::managerDefaultAdapterFinished);
 }
@@ -190,11 +197,16 @@ void ManagerBluez4::managerDefaultAdapterFinished(QDBusPendingCallWatcher *watch
 
     const QDBusObjectPath &objectPath = reply.value();
     managerAdapterAdded(objectPath);
+}
 
-    connect(m_bluez4Manager, &Bluez4Manager::AdapterAdded,
-            this, &ManagerBluez4::managerAdapterAdded);
-    connect(m_bluez4Manager, &Bluez4Manager::AdapterRemoved,
-            this, &ManagerBluez4::managerAdapterRemoved);
+void ManagerBluez4::managerDefaultAdapterChanged(const QDBusObjectPath &objectPath)
+{
+    QDBusInterface *bluez4Adapter = new QDBusInterface(Strings::orgBluez(), objectPath.path(),
+            QStringLiteral("org.bluez.Adapter"), DBusConnection::orgBluez(), this);
+
+    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(bluez4Adapter->asyncCall(QStringLiteral("GetProperties")), this);
+    watcher->setProperty("bluez4Adapter", QVariant::fromValue(bluez4Adapter));
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerBluez4::adapterGetPropertiesFinished);
 }
 
 void ManagerBluez4::managerAdapterAdded(const QDBusObjectPath &objectPath)

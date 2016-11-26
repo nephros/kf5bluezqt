@@ -58,6 +58,7 @@ signals:
 private:
     void emitLoaded(bool success, const QString &errorMessage = QString());
     void managerDefaultAdapterFinished(QDBusPendingCallWatcher *watcher);
+    void managerDefaultAdapterChanged(const QDBusObjectPath &objectPath);
     void managerAdapterAdded(const QDBusObjectPath &objectPath);
     void managerAdapterRemoved(const QDBusObjectPath &objectPath);
 
