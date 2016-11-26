@@ -103,17 +103,17 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
     QVariantMapMap::const_iterator it;
 
     for (it = interfaces.constBegin(); it != interfaces.constEnd(); ++it) {
-        if (it.key() == Strings::orgBluezInput1()) {
+        if (it.key() == Strings::orgBluezInput1() && !m_input) {
             m_input = InputPtr(new Input(path, it.value()));
             m_input->d->q = m_input.toWeakRef();
             Q_EMIT q.data()->inputChanged(m_input);
             changed = true;
-        } else if (it.key() == Strings::orgBluezMediaPlayer1()) {
+        } else if (it.key() == Strings::orgBluezMediaPlayer1() && !m_mediaPlayer) {
             m_mediaPlayer = MediaPlayerPtr(new MediaPlayer(path, it.value()));
             m_mediaPlayer->d->q = m_mediaPlayer.toWeakRef();
             Q_EMIT q.data()->mediaPlayerChanged(m_mediaPlayer);
             changed = true;
-        } else if (it.key() == Strings::orgBluezMediaTransport1()) {
+        } else if (it.key() == Strings::orgBluezMediaTransport1() && !m_mediaTransport) {
             m_mediaTransport = MediaTransportPtr(new MediaTransport(path, it.value()));
             m_mediaTransport->d->q = m_mediaTransport.toWeakRef();
             Q_EMIT q.data()->mediaTransportChanged(m_mediaTransport);
