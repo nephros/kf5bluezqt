@@ -184,6 +184,20 @@ public:
     virtual void authorizeService(DevicePtr device, const QString &uuid, const Request<> &request);
 
     /**
+     * Requests the agent to authorize a mode change.
+     *
+     * This method gets called when the Bluetooth daemon
+     * needs to confirm a mode change - for example, when
+     * leaving flight mode.
+     *
+     * Note this is only invoked for BlueZ 4 backends.
+     *
+     * @param mode new mode
+     * @param request request to be used for sending reply
+     */
+    virtual void confirmModeChange(const QString &mode, const Request<> &request);
+
+    /**
      * Indicate that the agent request failed before receiving reply.
      *
      * This method gets called to indicate that the agent

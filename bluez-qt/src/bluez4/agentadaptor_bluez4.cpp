@@ -133,6 +133,14 @@ void AgentAdaptorBluez4::Authorize(const QDBusObjectPath &device, const QString 
     m_agent->authorizeService(dev, uuid.toUpper(), req);
 }
 
+void AgentAdaptorBluez4::ConfirmModeChange(const QString &mode, const QDBusMessage &msg)
+{
+    msg.setDelayedReply(true);
+    Request<> req(OrgBluezAgent, msg);
+
+    m_agent->confirmModeChange(mode, req);
+}
+
 void AgentAdaptorBluez4::Cancel()
 {
     m_agent->cancel();

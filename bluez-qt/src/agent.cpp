@@ -85,6 +85,13 @@ void Agent::authorizeService(DevicePtr device, const QString &uuid, const Reques
     request.cancel();
 }
 
+void Agent::confirmModeChange(const QString &mode, const Request<> &request)
+{
+    Q_UNUSED(mode)
+
+    request.cancel();
+}
+
 void Agent::cancel()
 {
 }
