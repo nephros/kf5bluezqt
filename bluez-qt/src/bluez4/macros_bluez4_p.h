@@ -25,7 +25,9 @@
     } else { \
         invalidated << property; \
     } \
-    obj->propertiesChanged(interface, changed, invalidated); \
+    if (obj) { \
+        obj->propertiesChanged(interface, changed, invalidated); \
+    } \
 }
 
 #endif // BLUEZQT_MACROS_H
