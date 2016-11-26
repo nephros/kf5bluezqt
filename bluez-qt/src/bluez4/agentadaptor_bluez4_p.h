@@ -39,6 +39,7 @@ class Agent;
 // This is the same as agentadaptor.* but with:
 // - the org.bluez.Agent D-Bus interface Q_CLASSINFO
 // - Authorize() instead of AuthorizeService()
+// - ConfirmModeChange() for BlueZ 4 backend
 
 class AgentAdaptorBluez4 : public QDBusAbstractAdaptor
 {
@@ -58,6 +59,8 @@ public Q_SLOTS:
 
     // In BlueZ 4 it is Authorize() rather than AuthorizeService()
     void Authorize(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg);
+
+    void ConfirmModeChange(const QString &mode, const QDBusMessage &msg);
 
     Q_NOREPLY void Cancel();
     Q_NOREPLY void Release();
