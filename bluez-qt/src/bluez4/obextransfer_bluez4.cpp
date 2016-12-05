@@ -82,7 +82,7 @@ void ObexTransferBluez4::orgBluezObexTransferProgress(qint32 total, qint32 trans
     Q_UNUSED(total)
 
     QVariant value = static_cast<quint64>(transferred);
-    INVOKE_PROPERTIES_CHANGED(Strings::orgBluezObexTransfer1(), m_obexTransferPrivate, QStringLiteral("Progress"), value);
+    INVOKE_PROPERTIES_CHANGED(Strings::orgBluezObexTransfer1(), m_obexTransferPrivate, QStringLiteral("Transferred"), value);
 }
 
 void ObexTransferBluez4::orgBluezObexClientTransferComplete()
