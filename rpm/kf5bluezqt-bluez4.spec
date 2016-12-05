@@ -1,6 +1,6 @@
 Name:       kf5bluezqt-bluez4
 Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API (for BlueZ 4 backend)
-Version:    5.24.0+git8.1
+Version:    5.24.0+git8.2
 Release:    1
 Group:      System/Libraries
 License:    LGPLv2.1
