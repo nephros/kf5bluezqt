@@ -197,7 +197,12 @@ void ManagerBluez4::managerDefaultAdapterFinished(QDBusPendingCallWatcher *watch
     watcher->deleteLater();
 
     if (reply.isError()) {
-        emitLoaded(false, reply.error().message());
+        if (reply.error().name() == QStringLiteral("org.bluez.Error.NoSuchAdapter")) {
+            // It's OK if the default adapter is not yet available when the manager is loaded.
+            emitLoaded(true, QString());
+        } else {
+            emitLoaded(false, reply.error().message());
+        }
         return;
     }
 
