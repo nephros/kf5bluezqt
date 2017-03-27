@@ -43,6 +43,7 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
     , m_discoverableTimeout(0)
     , m_pairable(false)
     , m_pairableTimeout(0)
+    , m_connected(false)
 {
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     m_bluezAdapter = new BluezAdapter(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
@@ -88,6 +89,8 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
     m_devices.append(device);
     Q_EMIT q.data()->deviceAdded(device);
 
+    deviceConnectedChanged();
+    connect(device.data(), &Device::connectedChanged, this, &AdapterPrivate::deviceConnectedChanged);
     connect(device.data(), &Device::deviceChanged, q.data(), &Adapter::deviceChanged);
 }
 
@@ -97,6 +100,8 @@ void AdapterPrivate::removeDevice(const DevicePtr &device)
     Q_EMIT device->deviceRemoved(device);
     Q_EMIT q.data()->deviceRemoved(device);
 
+    deviceConnectedChanged();
+    disconnect(device.data(), &Device::connectedChanged, this, &AdapterPrivate::deviceConnectedChanged);
     disconnect(device.data(), &Device::deviceChanged, q.data(), &Adapter::deviceChanged);
 }
 
@@ -152,6 +157,22 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
     }
 
     Q_EMIT q.data()->adapterChanged(q.toStrongRef());
+}
+
+void AdapterPrivate::deviceConnectedChanged()
+{
+    bool newConnected = false;
+    for (auto device : m_devices) {
+        if (device->isConnected()) {
+            newConnected = true;
+            break;
+        }
+    }
+
+    if (m_connected != newConnected) {
+        m_connected = newConnected;
+        Q_EMIT q.data()->connectedChanged(m_connected);
+    }
 }
 
 } // namespace BluezQt

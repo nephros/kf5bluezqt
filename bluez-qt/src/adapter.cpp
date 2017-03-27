@@ -159,6 +159,11 @@ QList<DevicePtr> Adapter::devices() const
     return d->m_devices;
 }
 
+bool Adapter::isConnected() const
+{
+    return d->m_connected;
+}
+
 DevicePtr Adapter::deviceForAddress(const QString &address) const
 {
     Q_FOREACH (DevicePtr device, d->m_devices) {

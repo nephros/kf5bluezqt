@@ -47,6 +47,7 @@ class DeclarativeAdapter : public QObject
     Q_PROPERTY(QStringList uuids READ uuids NOTIFY uuidsChanged)
     Q_PROPERTY(QString modalias READ modalias NOTIFY modaliasChanged)
     Q_PROPERTY(QQmlListProperty<DeclarativeDevice> devices READ devices NOTIFY devicesChanged)
+    Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged)
 
 public:
     explicit DeclarativeAdapter(BluezQt::AdapterPtr adapter, QObject *parent = Q_NULLPTR);
@@ -85,6 +86,8 @@ public:
 
     QQmlListProperty<DeclarativeDevice> devices();
 
+    bool isConnected() const;
+
     BluezQt::AdapterPtr m_adapter;
     QHash<QString, DeclarativeDevice*> m_devices;
 
@@ -113,6 +116,7 @@ Q_SIGNALS:
     void deviceChanged(DeclarativeDevice *device);
 
     void devicesChanged(QQmlListProperty<DeclarativeDevice> devices);
+    void connectedChanged(bool connected);
 
 private Q_SLOTS:
     void slotDeviceAdded(BluezQt::DevicePtr device);
