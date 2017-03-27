@@ -59,6 +59,7 @@ class BLUEZQT_EXPORT Adapter : public QObject
     Q_PROPERTY(QStringList uuids READ uuids NOTIFY uuidsChanged)
     Q_PROPERTY(QString modalias READ modalias NOTIFY modaliasChanged)
     Q_PROPERTY(QList<DevicePtr> devices READ devices)
+    Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged)
 
 public:
     /**
@@ -236,6 +237,13 @@ public:
     QList<DevicePtr> devices() const;
 
     /**
+     * Returns true if this adapter is connected to any of its known devices.
+     *
+     * @return true if connected
+     */
+    bool isConnected() const;
+
+    /**
      * Returns a device for specified address.
      *
      * @param address address of device (eg. "40:79:6A:0C:39:75")
@@ -354,6 +362,11 @@ Q_SIGNALS:
      * Indicates that at least one of the device's properties have changed.
      */
     void deviceChanged(DevicePtr device);
+
+    /**
+     * Indicates that the connected state of this adapter has changed.
+     */
+    void connectedChanged(bool connected);
 
 private:
     explicit Adapter(const QString &path, const QVariantMap &properties);
