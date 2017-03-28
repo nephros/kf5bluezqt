@@ -69,6 +69,8 @@ DeclarativeAdapter::DeclarativeAdapter(BluezQt::AdapterPtr adapter, QObject *par
     connect(m_adapter.data(), &BluezQt::Adapter::deviceChanged, this, [this](const BluezQt::DevicePtr &device) {
         Q_EMIT deviceChanged(declarativeDeviceFromPtr(device));
     });
+
+    connect(m_adapter.data(), &BluezQt::Adapter::connectedChanged, this, &DeclarativeAdapter::connectedChanged);
 }
 
 QString DeclarativeAdapter::ubi() const
@@ -169,6 +171,11 @@ QString DeclarativeAdapter::modalias() const
 QQmlListProperty<DeclarativeDevice> DeclarativeAdapter::devices()
 {
     return QQmlListProperty<DeclarativeDevice>(this, 0, devicesCountFunction, devicesAtFunction);
+}
+
+bool DeclarativeAdapter::isConnected() const
+{
+    return m_adapter->isConnected();
 }
 
 DeclarativeDevice *DeclarativeAdapter::deviceForAddress(const QString &address) const

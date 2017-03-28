@@ -60,6 +60,8 @@ public:
     QDBusPendingReply<> setDBusProperty(const QString &name, const QVariant &value);
     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
 
+    void deviceConnectedChanged();
+
     QWeakPointer<Adapter> q;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     BluezAdapter *m_bluezAdapter;
@@ -78,6 +80,7 @@ public:
     bool m_discovering;
     QStringList m_uuids;
     QList<DevicePtr> m_devices;
+    bool m_connected;
     QString m_modalias;
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
