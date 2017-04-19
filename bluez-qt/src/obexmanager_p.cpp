@@ -227,6 +227,13 @@ void ObexManagerPrivate::clear()
     if (m_dbusObjectManager) {
         m_dbusObjectManager->deleteLater();
         m_dbusObjectManager = Q_NULLPTR;
+
+        DBusConnection::orgBluezObex().disconnect(Strings::orgBluezObex(),
+                                               QStringLiteral("/"),
+                                               QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+                                               QStringLiteral("InterfacesAdded"),
+                                               this,
+                                               SLOT(interfacesAddedSlot(QDBusObjectPath)));
     }
 #else
     if (m_bluez4) {
