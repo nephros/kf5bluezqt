@@ -86,6 +86,20 @@ bool Manager::setBluetoothBlocked(bool blocked)
     }
 }
 
+bool Manager::monitorObjectManagerInterfaces() const
+{
+    return d->m_monitorObjectManagerInterfaces;
+}
+
+void Manager::setMonitorObjectManagerInterfaces(bool monitor)
+{
+    if (d->m_monitorObjectManagerInterfaces != monitor) {
+        d->m_monitorObjectManagerInterfaces = monitor;
+        d->updateObjectManagerConnections();
+        emit monitorObjectManagerInterfacesChanged(monitor);
+    }
+}
+
 AdapterPtr Manager::usableAdapter() const
 {
     return d->m_usableAdapter;

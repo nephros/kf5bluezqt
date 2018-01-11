@@ -94,6 +94,7 @@ class BLUEZQT_EXPORT Manager : public QObject
     Q_PROPERTY(bool operational READ isOperational NOTIFY operationalChanged)
     Q_PROPERTY(bool bluetoothOperational READ isBluetoothOperational NOTIFY bluetoothOperationalChanged)
     Q_PROPERTY(bool bluetoothBlocked READ isBluetoothBlocked WRITE setBluetoothBlocked NOTIFY bluetoothBlockedChanged)
+    Q_PROPERTY(bool monitorObjectManagerInterfaces READ monitorObjectManagerInterfaces WRITE setMonitorObjectManagerInterfaces NOTIFY monitorObjectManagerInterfacesChanged)
     Q_PROPERTY(AdapterPtr usableAdapter READ usableAdapter NOTIFY usableAdapterChanged)
     Q_PROPERTY(QList<AdapterPtr> adapters READ adapters)
     Q_PROPERTY(QList<DevicePtr> devices READ devices)
@@ -169,6 +170,27 @@ public:
      * @return true if unblocking rfkill devices succeeded
      */
     bool setBluetoothBlocked(bool blocked);
+
+    /**
+     * Returns whether the D-Bus object manager is monitored for
+     * interface changes.
+     *
+     * The default value is true.
+     *
+     * @return true if monitoring is enabled.
+     */
+    bool monitorObjectManagerInterfaces() const;
+
+    /**
+     * Sets whether the D-Bus object manager is monitored for
+     * interface changes.
+     *
+     * If monitoring is enabled, the manager detects any additions
+     * and removals of devices (nearby or paired) and adapters.
+     *
+     * @param monitor whether monitoring is enabled/disabled
+     */
+    void setMonitorObjectManagerInterfaces(bool monitor);
 
     /**
      * Returns a usable adapter.
@@ -320,6 +342,11 @@ Q_SIGNALS:
      * Indicates that Bluetooth blocked state have changed.
      */
     void bluetoothBlockedChanged(bool blocked);
+
+    /**
+     * Indicates that object manager interface monitoring has changed.
+     */
+    void monitorObjectManagerInterfacesChanged(bool enabled);
 
     /**
      * Indicates that adapter was added.
