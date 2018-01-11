@@ -53,6 +53,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
     , m_bluezRunning(false)
     , m_loaded(false)
     , m_adaptersLoaded(false)
+    , m_monitorObjectManagerInterfaces(true)
 {
     qDBusRegisterMetaType<DBusManagerStruct>();
     qDBusRegisterMetaType<QVariantMapMap>();
@@ -196,17 +197,10 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
         return;
     }
 
-    DBusConnection::orgBluez().connect(Strings::orgBluez(),
-                                       QStringLiteral("/"),
-                                       QStringLiteral("org.freedesktop.DBus.ObjectManager"),
-                                       QStringLiteral("InterfacesAdded"),
-                                       this,
-                                       SLOT(interfacesAddedSlot(QDBusObjectPath)));
-    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
-            this, &ManagerPrivate::interfacesRemoved);
-
     m_loaded = true;
     m_initialized = true;
+
+    updateObjectManagerConnections();
 
     Q_EMIT q->operationalChanged(true);
 
@@ -217,6 +211,42 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
     Q_EMIT initFinished();
 #else
     Q_UNUSED(watcher)
+#endif
+}
+
+void ManagerPrivate::updateObjectManagerConnections()
+{
+    if (!m_loaded || !m_initialized) {
+        return;
+    }
+
+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
+    if (m_monitorObjectManagerInterfaces) {
+        DBusConnection::orgBluez().connect(Strings::orgBluez(),
+                                           QStringLiteral("/"),
+                                           QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+                                           QStringLiteral("InterfacesAdded"),
+                                           this,
+                                           SLOT(interfacesAddedSlot(QDBusObjectPath)));
+        if (m_dbusObjectManager) {
+            connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
+                    this, &ManagerPrivate::interfacesRemoved);
+
+            QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
+            connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::getInterfacesManagedObjectsFinished);
+        }
+    } else {
+        DBusConnection::orgBluez().disconnect(Strings::orgBluez(),
+                                              QStringLiteral("/"),
+                                              QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+                                              QStringLiteral("InterfacesAdded"),
+                                              this,
+                                              SLOT(interfacesAddedSlot(QDBusObjectPath)));
+        if (m_dbusObjectManager) {
+            disconnect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
+                       this, &ManagerPrivate::interfacesRemoved);
+        }
+    }
 #endif
 }
 

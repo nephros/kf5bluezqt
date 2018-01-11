@@ -86,6 +86,8 @@ public:
     bool rfkillBlocked() const;
     void setUsableAdapter(const AdapterPtr &adapter);
 
+    void updateObjectManagerConnections();
+
     Manager *q;
     Rfkill *m_rfkill;
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
@@ -102,6 +104,7 @@ public:
     bool m_bluezRunning;
     bool m_loaded;
     bool m_adaptersLoaded;
+    bool m_monitorObjectManagerInterfaces;
     bool m_bluetoothBlocked;
 
 #if KF5BLUEZQT_BLUEZ_VERSION < 5
