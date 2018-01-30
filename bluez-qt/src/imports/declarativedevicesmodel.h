@@ -33,6 +33,8 @@ class DeclarativeDevicesModel : public QSortFilterProxyModel
 {
     Q_OBJECT
     Q_PROPERTY(DeclarativeManager* manager READ manager WRITE setManager)
+    Q_PROPERTY(DeclarativeDevicesModel::DeclarativeFilters filters READ filters WRITE setFilters NOTIFY filtersChanged)
+    Q_PROPERTY(QStringList hiddenAddresses READ hiddenAddresses WRITE setHiddenAddresses NOTIFY hiddenAddressesChanged)
 
 public:
     enum DeclarativeDeviceRoles {
@@ -41,18 +43,42 @@ public:
         MediaPlayerRole = BluezQt::DevicesModel::LastRole + 3
     };
 
+    enum DeclarativeFilter {
+        PairedDevices = 0x1,
+        UnpairedDevices = 0x02,
+        AllDevices = PairedDevices | UnpairedDevices
+    };
+    Q_DECLARE_FLAGS(DeclarativeFilters, DeclarativeFilter)
+    Q_ENUM(DeclarativeFilter)
+    Q_FLAG(DeclarativeFilters)
+
     explicit DeclarativeDevicesModel(QObject *parent = Q_NULLPTR);
 
     DeclarativeManager *manager() const;
     void setManager(DeclarativeManager *manager);
 
+    DeclarativeDevicesModel::DeclarativeFilters filters() const;
+    void setFilters(DeclarativeDevicesModel::DeclarativeFilters filters);
+
+    QStringList hiddenAddresses() const;
+    void setHiddenAddresses(const QStringList &addresses);
+
     QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
     QVariant data(const QModelIndex &index, int role) const Q_DECL_OVERRIDE;
+    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
+
+Q_SIGNALS:
+    void filtersChanged(DeclarativeDevicesModel::DeclarativeFilters filters);
+    void hiddenAddressesChanged(const QStringList &addresses);
 
 private:
     DeclarativeManager *m_manager;
     BluezQt::DevicesModel *m_model;
+    QStringList m_hiddenAddresses;
+    DeclarativeFilters m_filters;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(DeclarativeDevicesModel::DeclarativeFilters)
 
 #endif // DECLARATIVEMANAGER_H
 

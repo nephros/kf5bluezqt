@@ -30,6 +30,7 @@ DeclarativeDevicesModel::DeclarativeDevicesModel(QObject *parent)
     : QSortFilterProxyModel(parent)
     , m_manager(0)
     , m_model(0)
+    , m_filters(0)
 {
 }
 
@@ -43,6 +44,38 @@ void DeclarativeDevicesModel::setManager(DeclarativeManager *manager)
     m_manager = manager;
     m_model = new BluezQt::DevicesModel(m_manager, this);
     setSourceModel(m_model);
+}
+
+DeclarativeDevicesModel::DeclarativeFilters DeclarativeDevicesModel::filters() const
+{
+    return m_filters;
+}
+
+void DeclarativeDevicesModel::setFilters(DeclarativeDevicesModel::DeclarativeFilters filters)
+{
+    if (m_filters != filters) {
+        m_filters = filters;
+        Q_EMIT filtersChanged(filters);
+    }
+    if (m_model) {
+        invalidateFilter();
+    }
+}
+
+QStringList DeclarativeDevicesModel::hiddenAddresses() const
+{
+    return m_hiddenAddresses;
+}
+
+void DeclarativeDevicesModel::setHiddenAddresses(const QStringList &addresses)
+{
+    if (m_hiddenAddresses != addresses) {
+        m_hiddenAddresses = addresses;
+        Q_EMIT hiddenAddressesChanged(addresses);
+    }
+    if (m_model) {
+        invalidateFilter();
+    }
 }
 
 QHash<int, QByteArray> DeclarativeDevicesModel::roleNames() const
@@ -80,4 +113,23 @@ QVariant DeclarativeDevicesModel::data(const QModelIndex &index, int role) const
     default:
         return QSortFilterProxyModel::data(index, role);
     }
+}
+
+bool DeclarativeDevicesModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
+{
+    if (!m_model) {
+        return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
+    }
+
+    BluezQt::DevicePtr dev = m_model->device(sourceModel()->index(source_row, 0, source_parent));
+    if (!dev) {
+        return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
+    }
+
+    if ( (dev->isPaired() && !(m_filters & PairedDevices))
+         || (!dev->isPaired() && !(m_filters & UnpairedDevices)) ) {
+        return false;
+    }
+
+    return !m_hiddenAddresses.contains(dev->address());
 }
