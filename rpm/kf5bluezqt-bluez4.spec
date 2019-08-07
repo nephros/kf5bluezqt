@@ -3,8 +3,8 @@ Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API (for BlueZ 4 backend)
 Version:    5.24.0+git6
 Release:    1
 Group:      System/Libraries
-License:    LGPLv2.1
-URL:        https://git.merproject.org/mer-core/kf5bluezqt
+License:    LGPLv2
+URL:        https://git.sailfishos.org/mer-core/kf5bluezqt
 Source0:    %{name}-%{version}.tar.bz2
 Provides:   kf5bluezqt
 Conflicts:  kf5bluezqt-bluez5
