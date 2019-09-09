@@ -227,7 +227,7 @@ PendingCall *ObexTransfer::resume()
 #if KF5BLUEZQT_BLUEZ_VERSION >= 5
     return new PendingCall(d->m_bluezTransfer->Resume(), PendingCall::ReturnVoid, this);
 #else
-    return false;
+    return Q_NULLPTR;
 #endif
 }
 
