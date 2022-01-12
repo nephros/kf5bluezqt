@@ -1,8 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Bea Lam <bea.lam@qinetic.com.au>
-Date: Thu, 11 Jan 2018 16:49:45 +1000
-Subject: [PATCH] [bluez-qt] Add filtering options to DeclarativeDevicesModel.
- Contributes to JB#40602
+From: Pekka Vuorela <pekka.vuorela@jolla.com>
+Date: Wed, 12 Jan 2022 15:13:10 +0200
+Subject: [PATCH] Add filtering options to DeclarativeDevicesModel. Contributes
+ to JB#40602
 
 ---
  src/imports/declarativedevicesmodel.cpp | 52 +++++++++++++++++++++++++
@@ -10,13 +10,13 @@ Subject: [PATCH] [bluez-qt] Add filtering options to DeclarativeDevicesModel.
  2 files changed, 78 insertions(+)
 
 diff --git a/src/imports/declarativedevicesmodel.cpp b/src/imports/declarativedevicesmodel.cpp
-index 0205362..bf4b177 100644
+index 58af155..a7a2732 100644
 --- a/src/imports/declarativedevicesmodel.cpp
 +++ b/src/imports/declarativedevicesmodel.cpp
 @@ -30,6 +30,7 @@ DeclarativeDevicesModel::DeclarativeDevicesModel(QObject *parent)
      : QSortFilterProxyModel(parent)
-     , m_manager(0)
-     , m_model(0)
+     , m_manager(nullptr)
+     , m_model(nullptr)
 +    , m_filters(0)
  {
  }
@@ -84,7 +84,7 @@ index 0205362..bf4b177 100644
 +    return !m_hiddenAddresses.contains(dev->address());
 +}
 diff --git a/src/imports/declarativedevicesmodel.h b/src/imports/declarativedevicesmodel.h
-index 3084ed5..8df15ca 100644
+index 6050329..ff991c9 100644
 --- a/src/imports/declarativedevicesmodel.h
 +++ b/src/imports/declarativedevicesmodel.h
 @@ -33,6 +33,8 @@ class DeclarativeDevicesModel : public QSortFilterProxyModel
@@ -109,7 +109,7 @@ index 3084ed5..8df15ca 100644
 +    Q_ENUM(DeclarativeFilter)
 +    Q_FLAG(DeclarativeFilters)
 +
-     explicit DeclarativeDevicesModel(QObject *parent = Q_NULLPTR);
+     explicit DeclarativeDevicesModel(QObject *parent = nullptr);
  
      DeclarativeManager *manager() const;
      void setManager(DeclarativeManager *manager);

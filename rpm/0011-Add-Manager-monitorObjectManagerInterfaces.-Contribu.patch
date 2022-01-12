@@ -1,8 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Bea Lam <bea.lam@qinetic.com.au>
 Date: Thu, 11 Jan 2018 11:53:35 +1000
-Subject: [PATCH] [bluez-qt] Add Manager::monitorObjectManagerInterfaces.
- Contributes to JB#40602
+Subject: [PATCH] Add Manager::monitorObjectManagerInterfaces. Contributes to
+ JB#40602
 
 ---
  src/manager.cpp   | 14 ++++++++++++++
@@ -37,7 +37,7 @@ index d96f8f7..8e13f00 100644
  {
      return d->m_usableAdapter;
 diff --git a/src/manager.h b/src/manager.h
-index 8cbaf09..06f4ced 100644
+index 1700dd8..9823ddb 100644
 --- a/src/manager.h
 +++ b/src/manager.h
 @@ -94,6 +94,7 @@ class BLUEZQT_EXPORT Manager : public QObject
@@ -89,7 +89,7 @@ index 8cbaf09..06f4ced 100644
       * Indicates that adapter was added.
       */
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index e35d1c9..359fd20 100644
+index aba94f9..b0e9751 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
 @@ -53,6 +53,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)

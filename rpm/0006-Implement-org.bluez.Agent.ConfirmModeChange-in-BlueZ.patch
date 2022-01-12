@@ -1,8 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Bea Lam <bea.lam@jollamobile.com>
 Date: Sat, 26 Nov 2016 16:17:32 +1000
-Subject: [PATCH] [bluez-qt] Implement org.bluez.Agent.ConfirmModeChange() in
- BlueZ 4 agent. Fixes JB#37080
+Subject: [PATCH] Implement org.bluez.Agent.ConfirmModeChange() in BlueZ 4
+ agent. Fixes JB#37080
 
 ---
  src/agent.cpp                      |  7 +++++++
@@ -30,7 +30,7 @@ index 42d3db4..2e38bec 100644
  {
  }
 diff --git a/src/agent.h b/src/agent.h
-index e9c5160..bb4be90 100644
+index 5b0d832..5cf4c26 100644
 --- a/src/agent.h
 +++ b/src/agent.h
 @@ -183,6 +183,20 @@ public:

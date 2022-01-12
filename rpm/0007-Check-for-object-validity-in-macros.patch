@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Bea Lam <bea.lam@jollamobile.com>
 Date: Sat, 26 Nov 2016 17:20:10 +1000
-Subject: [PATCH] [bluez-qt] Check for object validity in macros
+Subject: [PATCH] Check for object validity in macros
 
 If an application connects to both the statusChanged and
 transferredChanged signals for a transfer, and removes its reference to

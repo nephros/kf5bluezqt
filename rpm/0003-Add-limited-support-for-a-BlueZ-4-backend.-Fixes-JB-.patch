@@ -1,8 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Bea Lam <bea.lam@jollamobile.com>
-Date: Tue, 4 Oct 2016 20:07:49 +1000
-Subject: [PATCH] [bluez-qt] Add (limited) support for a BlueZ 4 backend. Fixes
- JB#36054
+From: Pekka Vuorela <pekka.vuorela@jolla.com>
+Date: Wed, 12 Jan 2022 15:07:40 +0200
+Subject: [PATCH] Add (limited) support for a BlueZ 4 backend. Fixes JB#36054
 
 Add limited support for a BlueZ 4 backend. The majority of the API is
 supported; see the README for details on current support.
@@ -137,7 +136,7 @@ index 2c09218..0f9dc7d 100644
  
  } // namespace BluezQt
 diff --git a/src/adapter_p.cpp b/src/adapter_p.cpp
-index fd34abc..3026111 100644
+index 786fa7d..2ef9718 100644
 --- a/src/adapter_p.cpp
 +++ b/src/adapter_p.cpp
 @@ -25,12 +25,20 @@
@@ -154,9 +153,9 @@ index fd34abc..3026111 100644
  AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &properties)
      : QObject()
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-     , m_dbusProperties(0)
+     , m_dbusProperties(nullptr)
 +#else
-+    , m_pairingAgent(0)
++    , m_pairingAgent(nullptr)
 +#endif
      , m_adapterClass(0)
      , m_powered(0)
@@ -481,7 +480,7 @@ index 42d3db4..324f070 100644
 +
  } // namespace BluezQt
 diff --git a/src/agent.h b/src/agent.h
-index e9c5160..d9e322f 100644
+index 5b0d832..737243d 100644
 --- a/src/agent.h
 +++ b/src/agent.h
 @@ -206,6 +206,41 @@ public:
@@ -590,10 +589,10 @@ index 2dbf6fd..cb07da8 100644
 +
  #endif // BLUEZQT_DBUSTYPES_H
 diff --git a/src/device.cpp b/src/device.cpp
-index 5c6b00b..4f2c1df 100644
+index 92567ca..33b749f 100644
 --- a/src/device.cpp
 +++ b/src/device.cpp
-@@ -268,7 +268,25 @@ Device::Type Device::stringToType(const QString &typeString)
+@@ -272,7 +272,25 @@ Device::Type Device::stringToType(const QString &typeString)
  
  PendingCall *Device::connectToDevice()
  {
@@ -619,7 +618,7 @@ index 5c6b00b..4f2c1df 100644
  }
  
  PendingCall *Device::disconnectFromDevice()
-@@ -278,22 +296,46 @@ PendingCall *Device::disconnectFromDevice()
+@@ -282,22 +300,46 @@ PendingCall *Device::disconnectFromDevice()
  
  PendingCall *Device::connectProfile(const QString &uuid)
  {
@@ -667,7 +666,7 @@ index 5c6b00b..4f2c1df 100644
  
  } // namespace BluezQt
 diff --git a/src/device_p.cpp b/src/device_p.cpp
-index ce19b67..42045a9 100644
+index 9ba34c4..cb34315 100644
 --- a/src/device_p.cpp
 +++ b/src/device_p.cpp
 @@ -32,14 +32,23 @@
@@ -687,10 +686,10 @@ index ce19b67..42045a9 100644
 -    : QObject()
 +    : QObject()    
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-     , m_dbusProperties(0)
+     , m_dbusProperties(nullptr)
 +#else
-+    , m_inputInterface(0)
-+    , m_audioInterface(0)
++    , m_inputInterface(nullptr)
++    , m_audioInterface(nullptr)
 +#endif
      , m_deviceClass(0)
      , m_appearance(0)
@@ -1523,7 +1522,7 @@ index 4bd0068..7606b03 100644
  
  } // namespace BluezQt
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index 6bc8fa5..54dd023 100644
+index aaec901..bad24b1 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
 @@ -33,15 +33,24 @@
@@ -1542,11 +1541,11 @@ index 6bc8fa5..54dd023 100644
      : QObject(parent)
      , q(parent)
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-     , m_dbusObjectManager(0)
-     , m_bluezAgentManager(0)
-     , m_bluezProfileManager(0)
+     , m_dbusObjectManager(nullptr)
+     , m_bluezAgentManager(nullptr)
+     , m_bluezProfileManager(nullptr)
 +#else
-+    , m_bluezManager(0)
++    , m_bluezManager(nullptr)
 +#endif
      , m_usableAdapter(0)
      , m_initialized(false)
@@ -1589,10 +1588,10 @@ index 6bc8fa5..54dd023 100644
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
      if (m_dbusObjectManager) {
          m_dbusObjectManager->deleteLater();
-         m_dbusObjectManager = Q_NULLPTR;
+         m_dbusObjectManager = nullptr;
 @@ -213,6 +233,7 @@ void ManagerPrivate::clear()
          m_bluezAgentManager->deleteLater();
-         m_bluezAgentManager = Q_NULLPTR;
+         m_bluezAgentManager = nullptr;
      }
 +#endif
  }
@@ -1651,7 +1650,7 @@ index 6bc8fa5..54dd023 100644
  }
  
  void ManagerPrivate::addDevice(const QString &devicePath, const QVariantMap &properties)
-@@ -425,4 +467,303 @@ void ManagerPrivate::dummy()
+@@ -428,4 +470,303 @@ void ManagerPrivate::dummy()
  {
  }
  
@@ -2156,7 +2155,7 @@ index 8d2c90a..623e31c 100644
  
  } // namespace BluezQt
 diff --git a/src/mediaplayer_p.cpp b/src/mediaplayer_p.cpp
-index 7471144..3d5c4d3 100644
+index 3c4e57e..38dcc8d 100644
 --- a/src/mediaplayer_p.cpp
 +++ b/src/mediaplayer_p.cpp
 @@ -75,7 +75,9 @@ static MediaPlayer::Status stringToStatus(const QString &status)
@@ -2164,7 +2163,7 @@ index 7471144..3d5c4d3 100644
  MediaPlayerPrivate::MediaPlayerPrivate(const QString &path, const QVariantMap &properties)
      : QObject()
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-     , m_dbusProperties(0)
+     , m_dbusProperties(nullptr)
 +#endif
      , m_equalizer(MediaPlayer::EqualizerOff)
      , m_repeat(MediaPlayer::RepeatOff)
@@ -2666,7 +2665,7 @@ index 3b1baab..d7fbc74 100644
  
  } // namespace BluezQt
 diff --git a/src/obexmanager.h b/src/obexmanager.h
-index 18af664..b529466 100644
+index 851978f..ab613a0 100644
 --- a/src/obexmanager.h
 +++ b/src/obexmanager.h
 @@ -205,6 +205,10 @@ private:
@@ -2681,7 +2680,7 @@ index 18af664..b529466 100644
  
  } // namespace BluezQt
 diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
-index d744c37..6876b58 100644
+index 2535b62..34e14e3 100644
 --- a/src/obexmanager_p.cpp
 +++ b/src/obexmanager_p.cpp
 @@ -27,21 +27,60 @@
@@ -2733,12 +2732,12 @@ index d744c37..6876b58 100644
  ObexManagerPrivate::ObexManagerPrivate(ObexManager *q)
      : QObject(q)
      , q(q)
-     , m_obexClient(0)
-     , m_obexAgentManager(0)
+     , m_obexClient(nullptr)
+     , m_obexAgentManager(nullptr)
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-     , m_dbusObjectManager(0)
+     , m_dbusObjectManager(nullptr)
 +#else
-+    , m_managerNotifier(0)
++    , m_managerNotifier(nullptr)
 +    , m_initializedSessions(false)
 +    , m_initializedTransfers(false)
 +#endif
@@ -2801,13 +2800,13 @@ index d744c37..6876b58 100644
  void ObexManagerPrivate::clear()
  {
 @@ -189,10 +260,12 @@ void ObexManagerPrivate::clear()
-         m_obexAgentManager = Q_NULLPTR;
+         m_obexAgentManager = nullptr;
      }
  
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
      if (m_dbusObjectManager) {
          m_dbusObjectManager->deleteLater();
-         m_dbusObjectManager = Q_NULLPTR;
+         m_dbusObjectManager = nullptr;
      }
 +#endif
  }
@@ -3346,7 +3345,7 @@ index f772b51..b8cc6f4 100644
      QString m_source;
      QString m_destination;
 diff --git a/src/obextransfer.cpp b/src/obextransfer.cpp
-index b6363cc..108e6c7 100644
+index dc642cc..faef66a 100644
 --- a/src/obextransfer.cpp
 +++ b/src/obextransfer.cpp
 @@ -28,6 +28,10 @@
@@ -3365,7 +3364,7 @@ index b6363cc..108e6c7 100644
  ObexTransferPrivate::ObexTransferPrivate(const QString &path, const QVariantMap &properties)
      : QObject()
 +#if KF5BLUEZQT_BLUEZ_VERSION >= 5
-     , m_dbusProperties(0)
+     , m_dbusProperties(nullptr)
 +#else
 +    , m_clientOrigin(path.contains(QStringLiteral("session")))
 +#endif
@@ -3536,7 +3535,7 @@ index b6363cc..108e6c7 100644
  
  } // namespace BluezQt
 diff --git a/src/obextransfer.h b/src/obextransfer.h
-index 49cf6d7..cf66768 100644
+index 72cbce7..0840fb6 100644
 --- a/src/obextransfer.h
 +++ b/src/obextransfer.h
 @@ -180,6 +180,10 @@ public:
@@ -3614,7 +3613,7 @@ index 4dd8078..ae30150 100644
      ObexTransfer::Status m_status;
      QString m_name;
 diff --git a/src/pendingcall.cpp b/src/pendingcall.cpp
-index 23a195c..e5d7e5b 100644
+index 8b19c4e..ee42f6d 100644
 --- a/src/pendingcall.cpp
 +++ b/src/pendingcall.cpp
 @@ -85,7 +85,11 @@ public:

@@ -1,8 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Bea Lam <bea.lam@jollamobile.com>
 Date: Sat, 26 Nov 2016 17:27:12 +1000
-Subject: [PATCH] [bluez-qt] Don't connect to signals with QVariantMapMap
- parameters. Fixes JB#36800
+Subject: [PATCH] Don't connect to signals with QVariantMapMap parameters.
+ Fixes JB#36800
 
 Signals with QVariantMapMap parameters (i.e. ManagerPrivate::interfacesAdded
 and ObexManagerPrivate::interfacesAdded) are not received even when
@@ -28,7 +28,7 @@ normal interfacesAdded() behaviour.
  5 files changed, 91 insertions(+), 7 deletions(-)
 
 diff --git a/src/device_p.cpp b/src/device_p.cpp
-index e8dd6f8..9da198d 100644
+index 30c6046..868ac65 100644
 --- a/src/device_p.cpp
 +++ b/src/device_p.cpp
 @@ -103,17 +103,17 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
@@ -53,7 +53,7 @@ index e8dd6f8..9da198d 100644
              m_mediaTransport->d->q = m_mediaTransport.toWeakRef();
              Q_EMIT q.data()->mediaTransportChanged(m_mediaTransport);
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index f5d03ad..e35d1c9 100644
+index 495f3e2..aba94f9 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
 @@ -196,8 +196,12 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
@@ -128,8 +128,8 @@ index f5d03ad..e35d1c9 100644
 +    }
 +
      AdapterPtr adapter = m_adapters.value(properties.value(QStringLiteral("Adapter")).value<QDBusObjectPath>().path());
-     Q_ASSERT(adapter);
-     DevicePtr device = DevicePtr(new Device(devicePath, properties, adapter));
+     if (!adapter) {
+         return;
 diff --git a/src/manager_p.h b/src/manager_p.h
 index ea56da8..2f57d1c 100644
 --- a/src/manager_p.h
@@ -144,7 +144,7 @@ index ea56da8..2f57d1c 100644
  };
  
 diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
-index a6a404b..d6132ff 100644
+index c4c26a7..089f512 100644
 --- a/src/obexmanager_p.cpp
 +++ b/src/obexmanager_p.cpp
 @@ -125,8 +125,12 @@ void ObexManagerPrivate::load()

@@ -1,6 +1,6 @@
 Name:       kf5bluezqt-bluez4
 Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API (for BlueZ 4 backend)
-Version:    5.24.0+git16
+Version:    5.34.0
 Release:    1
 License:    LGPLv2
 URL:        https://github.com/sailfishos/kf5bluezqt
@@ -17,18 +17,18 @@ Requires(postun): /sbin/ldconfig
 Requires: bluez
 Requires: obexd
 
-Patch1:  0001-packaging-Add-rpm-spec-and-.pro-files.patch
-Patch2:  0002-bluez-qt-Add-MediaTransport-org.bluez.MediaTransport.patch
-Patch3:  0003-bluez-qt-Add-limited-support-for-a-BlueZ-4-backend.-.patch
-Patch4:  0004-bluez-qt-Add-Manager-pairWithDevice-QString-to-pair-.patch
-Patch5:  0005-bluez-qt-Provide-binary-compatibility-between-BlueZ-.patch
-Patch6:  0006-bluez-qt-Implement-org.bluez.Agent.ConfirmModeChange.patch
-Patch7:  0007-bluez-qt-Check-for-object-validity-in-macros.patch
-Patch8:  0008-bluez-qt-Don-t-connect-to-signals-with-QVariantMapMa.patch
-Patch9:  0009-bluez-qt-Expose-adapter.connected-property.-Contribu.patch
-Patch10: 0010-bluez-qt-Fix-crash-after-unloading-the-obex-manager..patch
-Patch11: 0011-bluez-qt-Add-Manager-monitorObjectManagerInterfaces..patch
-Patch12: 0012-bluez-qt-Add-filtering-options-to-DeclarativeDevices.patch
+Patch1:  0001-Add-rpm-spec-and-.pro-files.patch
+Patch2:  0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
+Patch3:  0003-Add-limited-support-for-a-BlueZ-4-backend.-Fixes-JB-.patch
+Patch4:  0004-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
+Patch5:  0005-Provide-binary-compatibility-between-BlueZ-variant-p.patch
+Patch6:  0006-Implement-org.bluez.Agent.ConfirmModeChange-in-BlueZ.patch
+Patch7:  0007-Check-for-object-validity-in-macros.patch
+Patch8:  0008-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
+Patch9:  0009-Expose-adapter.connected-property.-Contributes-to-JB.patch
+Patch10: 0010-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
+Patch11: 0011-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
+Patch12: 0012-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
 
 %description
 This package contains the KF5BluezQt library.

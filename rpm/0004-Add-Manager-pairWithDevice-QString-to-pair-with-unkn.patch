@@ -1,8 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Bea Lam <bea.lam@jollamobile.com>
 Date: Thu, 10 Nov 2016 17:16:39 +1000
-Subject: [PATCH] [bluez-qt] Add Manager::pairWithDevice(QString) to pair with
- unknown devices. Contributes to JB#36678
+Subject: [PATCH] Add Manager::pairWithDevice(QString) to pair with unknown
+ devices. Contributes to JB#36678
 
 In BlueZ 5, pairing is done via org.bluez.Device1.Pair(), and the
 org.bluez.Device1 interface is persistently stored by the manager.
@@ -54,7 +54,7 @@ index 7606b03..2368bd9 100644
 +
  } // namespace BluezQt
 diff --git a/src/manager.h b/src/manager.h
-index 4453f2f..8cbaf09 100644
+index 3165509..1700dd8 100644
 --- a/src/manager.h
 +++ b/src/manager.h
 @@ -295,6 +295,16 @@ public:
@@ -75,10 +75,10 @@ index 4453f2f..8cbaf09 100644
      /**
       * Indicates that operational state have changed.
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index 54dd023..86b01b8 100644
+index bad24b1..ba5522d 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
-@@ -764,6 +764,11 @@ void ManagerPrivate::agentCreated(Agent *agent)
+@@ -767,6 +767,11 @@ void ManagerPrivate::agentCreated(Agent *agent)
          qCWarning(BLUEZQT) << "Cannot register object" << agent->objectPath().path();
      }
  }
