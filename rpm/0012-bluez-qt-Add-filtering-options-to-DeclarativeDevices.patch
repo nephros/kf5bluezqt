@@ -1,0 +1,144 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@qinetic.com.au>
+Date: Thu, 11 Jan 2018 16:49:45 +1000
+Subject: [PATCH] [bluez-qt] Add filtering options to DeclarativeDevicesModel.
+ Contributes to JB#40602
+
+---
+ src/imports/declarativedevicesmodel.cpp | 52 +++++++++++++++++++++++++
+ src/imports/declarativedevicesmodel.h   | 26 +++++++++++++
+ 2 files changed, 78 insertions(+)
+
+diff --git a/src/imports/declarativedevicesmodel.cpp b/src/imports/declarativedevicesmodel.cpp
+index 0205362..bf4b177 100644
+--- a/src/imports/declarativedevicesmodel.cpp
++++ b/src/imports/declarativedevicesmodel.cpp
+@@ -30,6 +30,7 @@ DeclarativeDevicesModel::DeclarativeDevicesModel(QObject *parent)
+     : QSortFilterProxyModel(parent)
+     , m_manager(0)
+     , m_model(0)
++    , m_filters(0)
+ {
+ }
+ 
+@@ -45,6 +46,38 @@ void DeclarativeDevicesModel::setManager(DeclarativeManager *manager)
+     setSourceModel(m_model);
+ }
+ 
++DeclarativeDevicesModel::DeclarativeFilters DeclarativeDevicesModel::filters() const
++{
++    return m_filters;
++}
++
++void DeclarativeDevicesModel::setFilters(DeclarativeDevicesModel::DeclarativeFilters filters)
++{
++    if (m_filters != filters) {
++        m_filters = filters;
++        Q_EMIT filtersChanged(filters);
++    }
++    if (m_model) {
++        invalidateFilter();
++    }
++}
++
++QStringList DeclarativeDevicesModel::hiddenAddresses() const
++{
++    return m_hiddenAddresses;
++}
++
++void DeclarativeDevicesModel::setHiddenAddresses(const QStringList &addresses)
++{
++    if (m_hiddenAddresses != addresses) {
++        m_hiddenAddresses = addresses;
++        Q_EMIT hiddenAddressesChanged(addresses);
++    }
++    if (m_model) {
++        invalidateFilter();
++    }
++}
++
+ QHash<int, QByteArray> DeclarativeDevicesModel::roleNames() const
+ {
+     QHash<int, QByteArray> roles = QSortFilterProxyModel::roleNames();
+@@ -81,3 +114,22 @@ QVariant DeclarativeDevicesModel::data(const QModelIndex &index, int role) const
+         return QSortFilterProxyModel::data(index, role);
+     }
+ }
++
++bool DeclarativeDevicesModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
++{
++    if (!m_model) {
++        return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
++    }
++
++    BluezQt::DevicePtr dev = m_model->device(sourceModel()->index(source_row, 0, source_parent));
++    if (!dev) {
++        return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
++    }
++
++    if ( (dev->isPaired() && !(m_filters & PairedDevices))
++         || (!dev->isPaired() && !(m_filters & UnpairedDevices)) ) {
++        return false;
++    }
++
++    return !m_hiddenAddresses.contains(dev->address());
++}
+diff --git a/src/imports/declarativedevicesmodel.h b/src/imports/declarativedevicesmodel.h
+index 3084ed5..8df15ca 100644
+--- a/src/imports/declarativedevicesmodel.h
++++ b/src/imports/declarativedevicesmodel.h
+@@ -33,6 +33,8 @@ class DeclarativeDevicesModel : public QSortFilterProxyModel
+ {
+     Q_OBJECT
+     Q_PROPERTY(DeclarativeManager* manager READ manager WRITE setManager)
++    Q_PROPERTY(DeclarativeDevicesModel::DeclarativeFilters filters READ filters WRITE setFilters NOTIFY filtersChanged)
++    Q_PROPERTY(QStringList hiddenAddresses READ hiddenAddresses WRITE setHiddenAddresses NOTIFY hiddenAddressesChanged)
+ 
+ public:
+     enum DeclarativeDeviceRoles {
+@@ -41,18 +43,42 @@ public:
+         MediaPlayerRole = BluezQt::DevicesModel::LastRole + 3
+     };
+ 
++    enum DeclarativeFilter {
++        PairedDevices = 0x1,
++        UnpairedDevices = 0x02,
++        AllDevices = PairedDevices | UnpairedDevices
++    };
++    Q_DECLARE_FLAGS(DeclarativeFilters, DeclarativeFilter)
++    Q_ENUM(DeclarativeFilter)
++    Q_FLAG(DeclarativeFilters)
++
+     explicit DeclarativeDevicesModel(QObject *parent = Q_NULLPTR);
+ 
+     DeclarativeManager *manager() const;
+     void setManager(DeclarativeManager *manager);
+ 
++    DeclarativeDevicesModel::DeclarativeFilters filters() const;
++    void setFilters(DeclarativeDevicesModel::DeclarativeFilters filters);
++
++    QStringList hiddenAddresses() const;
++    void setHiddenAddresses(const QStringList &addresses);
++
+     QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
+     QVariant data(const QModelIndex &index, int role) const Q_DECL_OVERRIDE;
++    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
++
++Q_SIGNALS:
++    void filtersChanged(DeclarativeDevicesModel::DeclarativeFilters filters);
++    void hiddenAddressesChanged(const QStringList &addresses);
+ 
+ private:
+     DeclarativeManager *m_manager;
+     BluezQt::DevicesModel *m_model;
++    QStringList m_hiddenAddresses;
++    DeclarativeFilters m_filters;
+ };
+ 
++Q_DECLARE_OPERATORS_FOR_FLAGS(DeclarativeDevicesModel::DeclarativeFilters)
++
+ #endif // DECLARATIVEMANAGER_H
+ 
+-- 
+2.33.1
+

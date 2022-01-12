@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@jollamobile.com>
+Date: Sat, 26 Nov 2016 17:20:10 +1000
+Subject: [PATCH] [bluez-qt] Check for object validity in macros
+
+If an application connects to both the statusChanged and
+transferredChanged signals for a transfer, and removes its reference to
+the Transfer object when statusChanged=Complete, the application
+crashes as ObexTransferPrivate::propertiesChanged() attempts to emit
+the transferredChanged signal immediately after the statusChanged
+signal, and q.data() is no longer valid. To avoid this, check for the
+validity of q.data() in macros.h. For completeness, update
+macros_bluez4.h to check for the validity of obj.
+---
+ src/bluez4/macros_bluez4_p.h |  4 +++-
+ src/macros.h                 | 12 +++++++++---
+ 2 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/src/bluez4/macros_bluez4_p.h b/src/bluez4/macros_bluez4_p.h
+index cb1808c..adca81c 100644
+--- a/src/bluez4/macros_bluez4_p.h
++++ b/src/bluez4/macros_bluez4_p.h
+@@ -31,7 +31,9 @@
+     } else { \
+         invalidated << property; \
+     } \
+-    obj->propertiesChanged(interface, changed, invalidated); \
++    if (obj) { \
++        obj->propertiesChanged(interface, changed, invalidated); \
++    } \
+ }
+ 
+ #endif // BLUEZQT_MACROS_H
+diff --git a/src/macros.h b/src/macros.h
+index 9b6c6f3..bdbe70d 100644
+--- a/src/macros.h
++++ b/src/macros.h
+@@ -27,21 +27,27 @@
+ #define PROPERTY_CHANGED(var, type_cast, signal) \
+     if (var != value.type_cast()) { \
+         var = value.type_cast(); \
+-        Q_EMIT q.data()->signal(var); \
++        if (q.data()) { \
++            Q_EMIT q.data()->signal(var); \
++        } \
+     }
+ 
+ #define PROPERTY_CHANGED2(var, value, signal) \
+     const auto &val = value; \
+     if (var != val) { \
+         var = val; \
+-        Q_EMIT q.data()->signal(var); \
++        if (q.data()) { \
++            Q_EMIT q.data()->signal(var); \
++        } \
+     }
+ 
+ // Clears property value and emit propertyChanged signal
+ #define PROPERTY_INVALIDATED(var, empty, signal) \
+     if (var != empty) { \
+         var = empty; \
+-        Q_EMIT q.data()->signal(var); \
++        if (q.data()) { \
++            Q_EMIT q.data()->signal(var); \
++        } \
+     }
+ 
+ #endif // BLUEZQT_MACROS_H
+-- 
+2.33.1
+

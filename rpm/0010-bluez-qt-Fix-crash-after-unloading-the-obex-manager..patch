@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Andrew den Exter <andrew.den.exter@jolla.com>
+Date: Wed, 19 Apr 2017 22:33:59 +1000
+Subject: [PATCH] [bluez-qt] Fix crash after unloading the obex manager. Fixes
+ JB#38409
+
+Disconnect from the interfaces added signal when the obex manager
+interface is destroyed.  Otherwise you'll get multiple connections
+when it is loaded again and worse if the signal is received when
+unloaded the interfacesAdded slot will try and dereference a null
+pointer.
+---
+ src/obexmanager_p.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
+index d6132ff..4616492 100644
+--- a/src/obexmanager_p.cpp
++++ b/src/obexmanager_p.cpp
+@@ -227,6 +227,13 @@ void ObexManagerPrivate::clear()
+     if (m_dbusObjectManager) {
+         m_dbusObjectManager->deleteLater();
+         m_dbusObjectManager = Q_NULLPTR;
++
++        DBusConnection::orgBluezObex().disconnect(Strings::orgBluezObex(),
++                                               QStringLiteral("/"),
++                                               QStringLiteral("org.freedesktop.DBus.ObjectManager"),
++                                               QStringLiteral("InterfacesAdded"),
++                                               this,
++                                               SLOT(interfacesAddedSlot(QDBusObjectPath)));
+     }
+ #else
+     if (m_bluez4) {
+-- 
+2.33.1
+

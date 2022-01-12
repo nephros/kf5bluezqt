@@ -2,9 +2,8 @@ Name:       kf5bluezqt-bluez5
 Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API
 Version:    5.24.0+git16
 Release:    1
-Group:      System/Libraries
 License:    LGPLv2
-URL:        https://git.sailfishos.org/mer-core/kf5bluezqt
+URL:        https://github.com/sailfishos/kf5bluezqt
 Source0:    %{name}-%{version}.tar.bz2
 Provides:   kf5bluezqt
 Conflicts:  kf5bluezqt-bluez4
@@ -18,12 +17,24 @@ Requires(postun): /sbin/ldconfig
 Requires: bluez5
 Requires: bluez5-obexd
 
+Patch1:  0001-packaging-Add-rpm-spec-and-.pro-files.patch
+Patch2:  0002-bluez-qt-Add-MediaTransport-org.bluez.MediaTransport.patch
+Patch3:  0003-bluez-qt-Add-limited-support-for-a-BlueZ-4-backend.-.patch
+Patch4:  0004-bluez-qt-Add-Manager-pairWithDevice-QString-to-pair-.patch
+Patch5:  0005-bluez-qt-Provide-binary-compatibility-between-BlueZ-.patch
+Patch6:  0006-bluez-qt-Implement-org.bluez.Agent.ConfirmModeChange.patch
+Patch7:  0007-bluez-qt-Check-for-object-validity-in-macros.patch
+Patch8:  0008-bluez-qt-Don-t-connect-to-signals-with-QVariantMapMa.patch
+Patch9:  0009-bluez-qt-Expose-adapter.connected-property.-Contribu.patch
+Patch10: 0010-bluez-qt-Fix-crash-after-unloading-the-obex-manager..patch
+Patch11: 0011-bluez-qt-Add-Manager-monitorObjectManagerInterfaces..patch
+Patch12: 0012-bluez-qt-Add-filtering-options-to-DeclarativeDevices.patch
+
 %description
 This package contains the KF5BluezQt library.
 
 %package declarative
 Summary:    Declarative plugin for kf5bluezqt
-Group:      Development/Tools
 Provides:   kf5bluezqt-declarative
 Conflicts:  kf5bluezqt-bluez4-declarative
 Requires:   %{name} = %{version}-%{release}
@@ -34,7 +45,6 @@ This package contains declarative plugin for kf5bluezqt
 
 %package devel
 Summary:    Development files for kf5bluezqt
-Group:      Development/Libraries
 Provides:   kf5bluezqt-devel
 Conflicts:  kf5bluezqt-bluez4-devel
 Requires:   %{name} = %{version}-%{release}
@@ -44,14 +54,13 @@ Requires:   %{name} = %{version}
 This package contains the development header files for kf5bluezqt
 
 %prep
-%setup -q -n %{name}-%{version}
+%autosetup -p1 -n %{name}-%{version}/upstream
 
 %build
 %qmake5 KF5BLUEZQT_BLUEZ_VERSION=5
-make %{?jobs:-j%jobs}
+%make_build
 
 %install
-rm -rf %{buildroot}
 %qmake5_install
 
 %post -p /sbin/ldconfig
@@ -60,6 +69,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
+%license COPYING.LIB
 %{_libdir}/libKF5BluezQt.so.*
 
 %files declarative

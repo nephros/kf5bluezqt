@@ -1,0 +1,99 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@jollamobile.com>
+Date: Sat, 26 Nov 2016 16:17:32 +1000
+Subject: [PATCH] [bluez-qt] Implement org.bluez.Agent.ConfirmModeChange() in
+ BlueZ 4 agent. Fixes JB#37080
+
+---
+ src/agent.cpp                      |  7 +++++++
+ src/agent.h                        | 14 ++++++++++++++
+ src/bluez4/agentadaptor_bluez4.cpp |  8 ++++++++
+ src/bluez4/agentadaptor_bluez4_p.h |  3 +++
+ 4 files changed, 32 insertions(+)
+
+diff --git a/src/agent.cpp b/src/agent.cpp
+index 42d3db4..2e38bec 100644
+--- a/src/agent.cpp
++++ b/src/agent.cpp
+@@ -85,6 +85,13 @@ void Agent::authorizeService(DevicePtr device, const QString &uuid, const Reques
+     request.cancel();
+ }
+ 
++void Agent::confirmModeChange(const QString &mode, const Request<> &request)
++{
++    Q_UNUSED(mode)
++
++    request.cancel();
++}
++
+ void Agent::cancel()
+ {
+ }
+diff --git a/src/agent.h b/src/agent.h
+index e9c5160..bb4be90 100644
+--- a/src/agent.h
++++ b/src/agent.h
+@@ -183,6 +183,20 @@ public:
+      */
+     virtual void authorizeService(DevicePtr device, const QString &uuid, const Request<> &request);
+ 
++    /**
++     * Requests the agent to authorize a mode change.
++     *
++     * This method gets called when the Bluetooth daemon
++     * needs to confirm a mode change - for example, when
++     * leaving flight mode.
++     *
++     * Note this is only invoked for BlueZ 4 backends.
++     *
++     * @param mode new mode
++     * @param request request to be used for sending reply
++     */
++    virtual void confirmModeChange(const QString &mode, const Request<> &request);
++
+     /**
+      * Indicate that the agent request failed before receiving reply.
+      *
+diff --git a/src/bluez4/agentadaptor_bluez4.cpp b/src/bluez4/agentadaptor_bluez4.cpp
+index cbcefa0..6d67b8f 100644
+--- a/src/bluez4/agentadaptor_bluez4.cpp
++++ b/src/bluez4/agentadaptor_bluez4.cpp
+@@ -133,6 +133,14 @@ void AgentAdaptorBluez4::Authorize(const QDBusObjectPath &device, const QString
+     m_agent->authorizeService(dev, uuid.toUpper(), req);
+ }
+ 
++void AgentAdaptorBluez4::ConfirmModeChange(const QString &mode, const QDBusMessage &msg)
++{
++    msg.setDelayedReply(true);
++    Request<> req(OrgBluezAgent, msg);
++
++    m_agent->confirmModeChange(mode, req);
++}
++
+ void AgentAdaptorBluez4::Cancel()
+ {
+     m_agent->cancel();
+diff --git a/src/bluez4/agentadaptor_bluez4_p.h b/src/bluez4/agentadaptor_bluez4_p.h
+index 01e681f..65c199f 100644
+--- a/src/bluez4/agentadaptor_bluez4_p.h
++++ b/src/bluez4/agentadaptor_bluez4_p.h
+@@ -39,6 +39,7 @@ class Agent;
+ // This is the same as agentadaptor.* but with:
+ // - the org.bluez.Agent D-Bus interface Q_CLASSINFO
+ // - Authorize() instead of AuthorizeService()
++// - ConfirmModeChange() for BlueZ 4 backend
+ 
+ class AgentAdaptorBluez4 : public QDBusAbstractAdaptor
+ {
+@@ -59,6 +60,8 @@ public Q_SLOTS:
+     // In BlueZ 4 it is Authorize() rather than AuthorizeService()
+     void Authorize(const QDBusObjectPath &device, const QString &uuid, const QDBusMessage &msg);
+ 
++    void ConfirmModeChange(const QString &mode, const QDBusMessage &msg);
++
+     Q_NOREPLY void Cancel();
+     Q_NOREPLY void Release();
+ 
+-- 
+2.33.1
+

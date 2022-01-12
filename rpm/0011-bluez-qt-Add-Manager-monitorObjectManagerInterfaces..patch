@@ -1,0 +1,190 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@qinetic.com.au>
+Date: Thu, 11 Jan 2018 11:53:35 +1000
+Subject: [PATCH] [bluez-qt] Add Manager::monitorObjectManagerInterfaces.
+ Contributes to JB#40602
+
+---
+ src/manager.cpp   | 14 ++++++++++++++
+ src/manager.h     | 27 ++++++++++++++++++++++++++
+ src/manager_p.cpp | 48 ++++++++++++++++++++++++++++++++++++++---------
+ src/manager_p.h   |  3 +++
+ 4 files changed, 83 insertions(+), 9 deletions(-)
+
+diff --git a/src/manager.cpp b/src/manager.cpp
+index d96f8f7..8e13f00 100644
+--- a/src/manager.cpp
++++ b/src/manager.cpp
+@@ -86,6 +86,20 @@ bool Manager::setBluetoothBlocked(bool blocked)
+     }
+ }
+ 
++bool Manager::monitorObjectManagerInterfaces() const
++{
++    return d->m_monitorObjectManagerInterfaces;
++}
++
++void Manager::setMonitorObjectManagerInterfaces(bool monitor)
++{
++    if (d->m_monitorObjectManagerInterfaces != monitor) {
++        d->m_monitorObjectManagerInterfaces = monitor;
++        d->updateObjectManagerConnections();
++        emit monitorObjectManagerInterfacesChanged(monitor);
++    }
++}
++
+ AdapterPtr Manager::usableAdapter() const
+ {
+     return d->m_usableAdapter;
+diff --git a/src/manager.h b/src/manager.h
+index 8cbaf09..06f4ced 100644
+--- a/src/manager.h
++++ b/src/manager.h
+@@ -94,6 +94,7 @@ class BLUEZQT_EXPORT Manager : public QObject
+     Q_PROPERTY(bool operational READ isOperational NOTIFY operationalChanged)
+     Q_PROPERTY(bool bluetoothOperational READ isBluetoothOperational NOTIFY bluetoothOperationalChanged)
+     Q_PROPERTY(bool bluetoothBlocked READ isBluetoothBlocked WRITE setBluetoothBlocked NOTIFY bluetoothBlockedChanged)
++    Q_PROPERTY(bool monitorObjectManagerInterfaces READ monitorObjectManagerInterfaces WRITE setMonitorObjectManagerInterfaces NOTIFY monitorObjectManagerInterfacesChanged)
+     Q_PROPERTY(AdapterPtr usableAdapter READ usableAdapter NOTIFY usableAdapterChanged)
+     Q_PROPERTY(QList<AdapterPtr> adapters READ adapters)
+     Q_PROPERTY(QList<DevicePtr> devices READ devices)
+@@ -170,6 +171,27 @@ public:
+      */
+     bool setBluetoothBlocked(bool blocked);
+ 
++    /**
++     * Returns whether the D-Bus object manager is monitored for
++     * interface changes.
++     *
++     * The default value is true.
++     *
++     * @return true if monitoring is enabled.
++     */
++    bool monitorObjectManagerInterfaces() const;
++
++    /**
++     * Sets whether the D-Bus object manager is monitored for
++     * interface changes.
++     *
++     * If monitoring is enabled, the manager detects any additions
++     * and removals of devices (nearby or paired) and adapters.
++     *
++     * @param monitor whether monitoring is enabled/disabled
++     */
++    void setMonitorObjectManagerInterfaces(bool monitor);
++
+     /**
+      * Returns a usable adapter.
+      *
+@@ -321,6 +343,11 @@ Q_SIGNALS:
+      */
+     void bluetoothBlockedChanged(bool blocked);
+ 
++    /**
++     * Indicates that object manager interface monitoring has changed.
++     */
++    void monitorObjectManagerInterfacesChanged(bool enabled);
++
+     /**
+      * Indicates that adapter was added.
+      */
+diff --git a/src/manager_p.cpp b/src/manager_p.cpp
+index e35d1c9..359fd20 100644
+--- a/src/manager_p.cpp
++++ b/src/manager_p.cpp
+@@ -53,6 +53,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
+     , m_bluezRunning(false)
+     , m_loaded(false)
+     , m_adaptersLoaded(false)
++    , m_monitorObjectManagerInterfaces(true)
+ {
+     qDBusRegisterMetaType<DBusManagerStruct>();
+     qDBusRegisterMetaType<QVariantMapMap>();
+@@ -196,18 +197,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+         return;
+     }
+ 
+-    DBusConnection::orgBluez().connect(Strings::orgBluez(),
+-                                       QStringLiteral("/"),
+-                                       QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+-                                       QStringLiteral("InterfacesAdded"),
+-                                       this,
+-                                       SLOT(interfacesAddedSlot(QDBusObjectPath)));
+-    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
+-            this, &ManagerPrivate::interfacesRemoved);
+-
+     m_loaded = true;
+     m_initialized = true;
+ 
++    updateObjectManagerConnections();
++
+     Q_EMIT q->operationalChanged(true);
+ 
+     if (q->isBluetoothOperational()) {
+@@ -220,6 +214,42 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+ #endif
+ }
+ 
++void ManagerPrivate::updateObjectManagerConnections()
++{
++    if (!m_loaded || !m_initialized) {
++        return;
++    }
++
++#if KF5BLUEZQT_BLUEZ_VERSION >= 5
++    if (m_monitorObjectManagerInterfaces) {
++        DBusConnection::orgBluez().connect(Strings::orgBluez(),
++                                           QStringLiteral("/"),
++                                           QStringLiteral("org.freedesktop.DBus.ObjectManager"),
++                                           QStringLiteral("InterfacesAdded"),
++                                           this,
++                                           SLOT(interfacesAddedSlot(QDBusObjectPath)));
++        if (m_dbusObjectManager) {
++            connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
++                    this, &ManagerPrivate::interfacesRemoved);
++
++            QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
++            connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::getInterfacesManagedObjectsFinished);
++        }
++    } else {
++        DBusConnection::orgBluez().disconnect(Strings::orgBluez(),
++                                              QStringLiteral("/"),
++                                              QStringLiteral("org.freedesktop.DBus.ObjectManager"),
++                                              QStringLiteral("InterfacesAdded"),
++                                              this,
++                                              SLOT(interfacesAddedSlot(QDBusObjectPath)));
++        if (m_dbusObjectManager) {
++            disconnect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
++                       this, &ManagerPrivate::interfacesRemoved);
++        }
++    }
++#endif
++}
++
+ void ManagerPrivate::clear()
+ {
+     m_loaded = false;
+diff --git a/src/manager_p.h b/src/manager_p.h
+index 2f57d1c..5da1c2e 100644
+--- a/src/manager_p.h
++++ b/src/manager_p.h
+@@ -86,6 +86,8 @@ public:
+     bool rfkillBlocked() const;
+     void setUsableAdapter(const AdapterPtr &adapter);
+ 
++    void updateObjectManagerConnections();
++
+     Manager *q;
+     Rfkill *m_rfkill;
+ #if KF5BLUEZQT_BLUEZ_VERSION >= 5
+@@ -102,6 +104,7 @@ public:
+     bool m_bluezRunning;
+     bool m_loaded;
+     bool m_adaptersLoaded;
++    bool m_monitorObjectManagerInterfaces;
+     bool m_bluetoothBlocked;
+ 
+ #if KF5BLUEZQT_BLUEZ_VERSION < 5
+-- 
+2.33.1
+

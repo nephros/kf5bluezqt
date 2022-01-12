@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@jollamobile.com>
+Date: Thu, 10 Nov 2016 17:16:39 +1000
+Subject: [PATCH] [bluez-qt] Add Manager::pairWithDevice(QString) to pair with
+ unknown devices. Contributes to JB#36678
+
+In BlueZ 5, pairing is done via org.bluez.Device1.Pair(), and the
+org.bluez.Device1 interface is persistently stored by the manager.
+
+In BlueZ 4 however, devices come and go during discovery, so there may
+not be an org.bluez.Device interface available for the device that you
+want to pair with. This isn't an issue with BlueZ 4 as pairing is done
+via org.bluez.Adapter.CreatePairedDevice() instead, but as the
+kf5bluezqt API wraps the BlueZ 5 API, it's not possible to pair without
+a DevicePtr.
+
+Work around this by adding Manager::pairWithDevice() to pair with any
+device, regardless of whether an org.bluez.Device interface is currently
+available for that device with the BlueZ 4 backend. For BlueZ 5, this
+will end up calling Device::pair() anyway, and for BlueZ 4, this will
+call org.bluez.Adapter.CreatePairedDevice().
+---
+ src/manager.cpp   | 18 ++++++++++++++++++
+ src/manager.h     | 10 ++++++++++
+ src/manager_p.cpp |  5 +++++
+ src/manager_p.h   |  2 ++
+ 4 files changed, 35 insertions(+)
+
+diff --git a/src/manager.cpp b/src/manager.cpp
+index 7606b03..2368bd9 100644
+--- a/src/manager.cpp
++++ b/src/manager.cpp
+@@ -282,4 +282,22 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
+ #endif
+ }
+ 
++PendingCall *Manager::pairWithDevice(const QString &address)
++{
++    BluezQt::DevicePtr device = deviceForAddress(address);
++    if (device) {
++        return device->pair();
++    }
++#if KF5BLUEZQT_BLUEZ_VERSION >= 5
++    return new PendingCall(PendingCall::InternalError, QStringLiteral("Device unknown!"), this);
++#else
++    if (d->m_adapters.isEmpty()) {
++        return new PendingCall(PendingCall::InternalError, QStringLiteral("No adapters available!"), this);
++    }
++
++    AdapterPtr adapter = d->m_usableAdapter ? d->m_usableAdapter : d->m_adapters.values().first();
++    return new PendingCall(d->createPairedDevice(adapter, address), PendingCall::ReturnObjectPath, this);
++#endif
++}
++
+ } // namespace BluezQt
+diff --git a/src/manager.h b/src/manager.h
+index 4453f2f..8cbaf09 100644
+--- a/src/manager.h
++++ b/src/manager.h
+@@ -295,6 +295,16 @@ public:
+      */
+     PendingCall *unregisterProfile(Profile *profile);
+ 
++    /**
++     * Pairs with a device.
++     *
++     * Possible errors: PendingCall::DoesNotExist
++     *
++     * @param address address of the device
++     * @return pending call with null if the device is known, otherwise with the device object path
++     */
++    PendingCall *pairWithDevice(const QString &address);
++
+ Q_SIGNALS:
+     /**
+      * Indicates that operational state have changed.
+diff --git a/src/manager_p.cpp b/src/manager_p.cpp
+index 54dd023..86b01b8 100644
+--- a/src/manager_p.cpp
++++ b/src/manager_p.cpp
+@@ -764,6 +764,11 @@ void ManagerPrivate::agentCreated(Agent *agent)
+         qCWarning(BLUEZQT) << "Cannot register object" << agent->objectPath().path();
+     }
+ }
++
++QDBusPendingReply<QDBusObjectPath> ManagerPrivate::createPairedDevice(AdapterPtr adapter, const QString &address)
++{
++    return adapter->d->createPairedDevice(address);
++}
+ #endif
+ 
+ } // namespace BluezQt
+diff --git a/src/manager_p.h b/src/manager_p.h
+index 3b0cf0b..9ef4cd8 100644
+--- a/src/manager_p.h
++++ b/src/manager_p.h
+@@ -111,6 +111,8 @@ public:
+     void unregisterAgentFinished(QDBusPendingCallWatcher *watcher);
+     AdapterPtr findAdapterForDefaultAgent(Agent *agent);
+     void agentCreated(Agent *agent);
++
++    QDBusPendingReply<QDBusObjectPath> createPairedDevice(AdapterPtr adapter, const QString &address);
+ #endif
+ 
+     Manager *q;
+-- 
+2.33.1
+
