@@ -1,0 +1,228 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@jollamobile.com>
+Date: Sat, 26 Nov 2016 17:27:12 +1000
+Subject: [PATCH] Don't connect to signals with QVariantMapMap parameters.
+ Fixes JB#36800
+
+Signals with QVariantMapMap parameters (i.e. ManagerPrivate::interfacesAdded
+and ObexManagerPrivate::interfacesAdded) are not received even when
+dbus-monitor indicates the signals are being sent. If the
+QVariantMapMap parameter is removed, the signal is received as
+expected.
+
+This behaviour is application-dependent so I'm wondering if it is a
+resurfacing of QTBUG-11485 and is dependent on the libraries used by
+the application.
+
+With this patch, the managers connect to interfacesAdded() without the
+QVariantMapMap parameter, and when the signal is received, calls
+DBusObjectManager::GetManagedObjects() to fetch the full list of
+available interfaces, then updates the internal properties as per the
+normal interfacesAdded() behaviour.
+---
+ src/device_p.cpp      |  6 +++---
+ src/manager_p.cpp     | 46 +++++++++++++++++++++++++++++++++++++++++--
+ src/manager_p.h       |  2 ++
+ src/obexmanager_p.cpp | 42 +++++++++++++++++++++++++++++++++++++--
+ src/obexmanager_p.h   |  2 ++
+ 5 files changed, 91 insertions(+), 7 deletions(-)
+
+diff --git a/src/device_p.cpp b/src/device_p.cpp
+index 30c6046..868ac65 100644
+--- a/src/device_p.cpp
++++ b/src/device_p.cpp
+@@ -103,17 +103,17 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
+     QVariantMapMap::const_iterator it;
+ 
+     for (it = interfaces.constBegin(); it != interfaces.constEnd(); ++it) {
+-        if (it.key() == Strings::orgBluezInput1()) {
++        if (it.key() == Strings::orgBluezInput1() && !m_input) {
+             m_input = InputPtr(new Input(path, it.value()));
+             m_input->d->q = m_input.toWeakRef();
+             Q_EMIT q.data()->inputChanged(m_input);
+             changed = true;
+-        } else if (it.key() == Strings::orgBluezMediaPlayer1()) {
++        } else if (it.key() == Strings::orgBluezMediaPlayer1() && !m_mediaPlayer) {
+             m_mediaPlayer = MediaPlayerPtr(new MediaPlayer(path, it.value()));
+             m_mediaPlayer->d->q = m_mediaPlayer.toWeakRef();
+             Q_EMIT q.data()->mediaPlayerChanged(m_mediaPlayer);
+             changed = true;
+-        } else if (it.key() == Strings::orgBluezMediaTransport1()) {
++        } else if (it.key() == Strings::orgBluezMediaTransport1() && !m_mediaTransport) {
+             m_mediaTransport = MediaTransportPtr(new MediaTransport(path, it.value()));
+             m_mediaTransport->d->q = m_mediaTransport.toWeakRef();
+             Q_EMIT q.data()->mediaTransportChanged(m_mediaTransport);
+diff --git a/src/manager_p.cpp b/src/manager_p.cpp
+index 495f3e2..aba94f9 100644
+--- a/src/manager_p.cpp
++++ b/src/manager_p.cpp
+@@ -196,8 +196,12 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+         return;
+     }
+ 
+-    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesAdded,
+-            this, &ManagerPrivate::interfacesAdded);
++    DBusConnection::orgBluez().connect(Strings::orgBluez(),
++                                       QStringLiteral("/"),
++                                       QStringLiteral("org.freedesktop.DBus.ObjectManager"),
++                                       QStringLiteral("InterfacesAdded"),
++                                       this,
++                                       SLOT(interfacesAddedSlot(QDBusObjectPath)));
+     connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
+             this, &ManagerPrivate::interfacesRemoved);
+ 
+@@ -292,6 +296,36 @@ void ManagerPrivate::serviceUnregistered()
+     Q_EMIT q->operationalChanged(false);
+ }
+ 
++void ManagerPrivate::interfacesAddedSlot(const QDBusObjectPath &objectPath)
++{
++    Q_UNUSED(objectPath)
++
++#if KF5BLUEZQT_BLUEZ_VERSION >= 5
++    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
++    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::getInterfacesManagedObjectsFinished);
++#endif
++}
++
++void ManagerPrivate::getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
++{
++    const QDBusPendingReply<DBusManagerStruct> &reply = *watcher;
++    watcher->deleteLater();
++
++    if (reply.isError()) {
++        qCWarning(BLUEZQT) << "Failed to find managed objects:" << reply.error().message();
++        return;
++    }
++
++    DBusManagerStruct::const_iterator it;
++    const DBusManagerStruct &managedObjects = reply.value();
++
++    for (it = managedObjects.constBegin(); it != managedObjects.constEnd(); ++it) {
++        const QVariantMapMap &interfaces = it.value();
++
++        interfacesAdded(it.key(), interfaces);
++    }
++}
++
+ void ManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
+ {
+     const QString &path = objectPath.path();
+@@ -381,6 +415,10 @@ void ManagerPrivate::rfkillStateChanged(Rfkill::State state)
+ 
+ void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &properties)
+ {
++    if (m_adapters.contains(adapterPath)) {
++        return;
++    }
++
+     AdapterPtr adapter = AdapterPtr(new Adapter(adapterPath, properties));
+     adapter->d->q = adapter.toWeakRef();
+     m_adapters.insert(adapterPath, adapter);
+@@ -404,6 +442,10 @@ void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &p
+ 
+ void ManagerPrivate::addDevice(const QString &devicePath, const QVariantMap &properties)
+ {
++    if (m_devices.contains(devicePath)) {
++        return;
++    }
++
+     AdapterPtr adapter = m_adapters.value(properties.value(QStringLiteral("Adapter")).value<QDBusObjectPath>().path());
+     if (!adapter) {
+         return;
+diff --git a/src/manager_p.h b/src/manager_p.h
+index ea56da8..2f57d1c 100644
+--- a/src/manager_p.h
++++ b/src/manager_p.h
+@@ -115,6 +115,8 @@ Q_SIGNALS:
+ 
+ private Q_SLOTS:
+     void dummy();
++    void interfacesAddedSlot(const QDBusObjectPath &objectPath);
++    void getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher);
+ 
+ };
+ 
+diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
+index c4c26a7..089f512 100644
+--- a/src/obexmanager_p.cpp
++++ b/src/obexmanager_p.cpp
+@@ -125,8 +125,12 @@ void ObexManagerPrivate::load()
+     m_dbusObjectManager = new DBusObjectManager(Strings::orgBluezObex(), QStringLiteral("/"),
+             DBusConnection::orgBluezObex(), this);
+ 
+-    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesAdded,
+-            this, &ObexManagerPrivate::interfacesAdded);
++    DBusConnection::orgBluezObex().connect(Strings::orgBluezObex(),
++                                           QStringLiteral("/"),
++                                           QStringLiteral("org.freedesktop.DBus.ObjectManager"),
++                                           QStringLiteral("InterfacesAdded"),
++                                           this,
++                                           SLOT(interfacesAddedSlot(QDBusObjectPath)));
+     connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
+             this, &ObexManagerPrivate::interfacesRemoved);
+ 
+@@ -252,6 +256,36 @@ void ObexManagerPrivate::serviceUnregistered()
+     Q_EMIT q->operationalChanged(false);
+ }
+ 
++void ObexManagerPrivate::interfacesAddedSlot(const QDBusObjectPath &objectPath)
++{
++    Q_UNUSED(objectPath)
++
++#if KF5BLUEZQT_BLUEZ_VERSION >= 5
++    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
++    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ObexManagerPrivate::getInterfacesManagedObjectsFinished);
++#endif
++}
++
++void ObexManagerPrivate::getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
++{
++    const QDBusPendingReply<DBusManagerStruct> &reply = *watcher;
++    watcher->deleteLater();
++
++    if (reply.isError()) {
++        qCWarning(BLUEZQT) << "Failed to find managed objects:" << reply.error().message();
++        return;
++    }
++
++    DBusManagerStruct::const_iterator it;
++    const DBusManagerStruct &managedObjects = reply.value();
++
++    for (it = managedObjects.constBegin(); it != managedObjects.constEnd(); ++it) {
++        const QVariantMapMap &interfaces = it.value();
++
++        interfacesAdded(it.key(), interfaces);
++    }
++}
++
+ void ObexManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
+ {
+     const QString &path = objectPath.path();
+@@ -277,6 +311,10 @@ void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, co
+ 
+ void ObexManagerPrivate::addSession(const QString &sessionPath, const QVariantMap &properties)
+ {
++    if (m_sessions.contains(sessionPath)) {
++        return;
++    }
++
+     ObexSessionPtr session = ObexSessionPtr(new ObexSession(sessionPath, properties));
+     session->d->q = session.toWeakRef();
+     m_sessions.insert(sessionPath, session);
+diff --git a/src/obexmanager_p.h b/src/obexmanager_p.h
+index 00a7af9..2ef373c 100644
+--- a/src/obexmanager_p.h
++++ b/src/obexmanager_p.h
+@@ -97,6 +97,8 @@ Q_SIGNALS:
+ 
+ private Q_SLOTS:
+     void dummy();
++    void interfacesAddedSlot(const QDBusObjectPath &objectPath);
++    void getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher);
+ };
+ 
+ } // namespace BluezQt
+-- 
+2.33.1
+

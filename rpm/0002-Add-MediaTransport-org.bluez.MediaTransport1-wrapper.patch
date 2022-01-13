@@ -1,0 +1,1082 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@jollamobile.com>
+Date: Sat, 23 Jul 2016 13:23:39 +0930
+Subject: [PATCH] Add MediaTransport - org.bluez.MediaTransport1 wrapper
+
+---
+ src/device.cpp                               |   5 +
+ src/device.h                                 |   5 +
+ src/device_p.cpp                             |  11 +
+ src/device_p.h                               |   1 +
+ src/interfaces/org.bluez.MediaTransport1.xml |  17 ++
+ src/mediatransport.cpp                       | 106 +++++++++
+ src/mediatransport.h                         | 214 +++++++++++++++++++
+ src/mediatransport_p.cpp                     | 118 ++++++++++
+ src/mediatransport_p.h                       |  64 ++++++
+ src/mediatransportsocketinfo.cpp             |  89 ++++++++
+ src/mediatransportsocketinfo.h               | 105 +++++++++
+ src/pendingcall.cpp                          |  18 ++
+ src/pendingcall.h                            |   4 +-
+ src/src.pro                                  |   9 +
+ src/types.h                                  |   3 +
+ src/utils.cpp                                |   7 +
+ src/utils.h                                  |   1 +
+ 17 files changed, 776 insertions(+), 1 deletion(-)
+ create mode 100644 src/interfaces/org.bluez.MediaTransport1.xml
+ create mode 100644 src/mediatransport.cpp
+ create mode 100644 src/mediatransport.h
+ create mode 100644 src/mediatransport_p.cpp
+ create mode 100644 src/mediatransport_p.h
+ create mode 100644 src/mediatransportsocketinfo.cpp
+ create mode 100644 src/mediatransportsocketinfo.h
+
+diff --git a/src/device.cpp b/src/device.cpp
+index def29a5..92567ca 100644
+--- a/src/device.cpp
++++ b/src/device.cpp
+@@ -174,6 +174,11 @@ MediaPlayerPtr Device::mediaPlayer() const
+     return d->m_mediaPlayer;
+ }
+ 
++MediaTransportPtr Device::mediaTransport() const
++{
++    return d->m_mediaTransport;
++}
++
+ AdapterPtr Device::adapter() const
+ {
+     return d->m_adapter;
+diff --git a/src/device.h b/src/device.h
+index 3fa306d..42d5159 100644
+--- a/src/device.h
++++ b/src/device.h
+@@ -62,6 +62,7 @@ class BLUEZQT_EXPORT Device : public QObject
+     Q_PROPERTY(QString modalias READ modalias NOTIFY modaliasChanged)
+     Q_PROPERTY(InputPtr input READ input NOTIFY inputChanged)
+     Q_PROPERTY(MediaPlayerPtr mediaPlayer READ mediaPlayer NOTIFY mediaPlayerChanged)
++    Q_PROPERTY(MediaTransportPtr mediaTransport READ mediaTransport NOTIFY mediaTransportChanged)
+     Q_PROPERTY(AdapterPtr adapter READ adapter)
+ 
+ public:
+@@ -313,6 +314,8 @@ public:
+      */
+     MediaPlayerPtr mediaPlayer() const;
+ 
++    MediaTransportPtr mediaTransport() const;
++
+     /**
+      * Returns an adapter that discovered this device.
+      *
+@@ -501,6 +504,8 @@ Q_SIGNALS:
+      */
+     void mediaPlayerChanged(MediaPlayerPtr mediaPlayer);
+ 
++    void mediaTransportChanged(MediaTransportPtr mediaTransport);
++
+ private:
+     explicit Device(const QString &path, const QVariantMap &properties, AdapterPtr adapter);
+ 
+diff --git a/src/device_p.cpp b/src/device_p.cpp
+index 79cbb86..9ba34c4 100644
+--- a/src/device_p.cpp
++++ b/src/device_p.cpp
+@@ -27,6 +27,8 @@
+ #include "input_p.h"
+ #include "mediaplayer.h"
+ #include "mediaplayer_p.h"
++#include "mediatransport.h"
++#include "mediatransport_p.h"
+ #include "utils.h"
+ #include "macros.h"
+ 
+@@ -99,6 +101,11 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
+             m_mediaPlayer->d->q = m_mediaPlayer.toWeakRef();
+             Q_EMIT q.data()->mediaPlayerChanged(m_mediaPlayer);
+             changed = true;
++        } else if (it.key() == Strings::orgBluezMediaTransport1()) {
++            m_mediaTransport = MediaTransportPtr(new MediaTransport(path, it.value()));
++            m_mediaTransport->d->q = m_mediaTransport.toWeakRef();
++            Q_EMIT q.data()->mediaTransportChanged(m_mediaTransport);
++            changed = true;
+         }
+     }
+ 
+@@ -121,6 +128,10 @@ void DevicePrivate::interfacesRemoved(const QString &path, const QStringList &in
+             m_mediaPlayer.clear();
+             Q_EMIT q.data()->mediaPlayerChanged(m_mediaPlayer);
+             changed = true;
++        } else if (interface == Strings::orgBluezMediaTransport1()) {
++            m_mediaTransport.clear();
++            Q_EMIT q.data()->mediaTransportChanged(m_mediaTransport);
++            changed = true;
+         }
+     }
+ 
+diff --git a/src/device_p.h b/src/device_p.h
+index f2a7bd2..1590181 100644
+--- a/src/device_p.h
++++ b/src/device_p.h
+@@ -75,6 +75,7 @@ public:
+     QString m_modalias;
+     InputPtr m_input;
+     MediaPlayerPtr m_mediaPlayer;
++    MediaTransportPtr m_mediaTransport;
+     AdapterPtr m_adapter;
+ };
+ 
+diff --git a/src/interfaces/org.bluez.MediaTransport1.xml b/src/interfaces/org.bluez.MediaTransport1.xml
+new file mode 100644
+index 0000000..d754e42
+--- /dev/null
++++ b/src/interfaces/org.bluez.MediaTransport1.xml
+@@ -0,0 +1,17 @@
++<?xml version="1.0"?>
++<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
++<node>
++  <interface name="org.bluez.MediaTransport1">
++    <method name="Acquire">
++      <arg name="fd" type="h" direction="out"/>
++      <arg name="read_mtu" type="q" direction="out"/>
++      <arg name="write_mtu" type="q" direction="out"/>
++    </method>
++    <method name="TryAcquire">
++      <arg name="fd" type="h" direction="out"/>
++      <arg name="read_mtu" type="q" direction="out"/>
++      <arg name="write_mtu" type="q" direction="out"/>
++    </method>
++    <method name="Release"/>
++  </interface>
++</node>
+diff --git a/src/mediatransport.cpp b/src/mediatransport.cpp
+new file mode 100644
+index 0000000..375a8a9
+--- /dev/null
++++ b/src/mediatransport.cpp
+@@ -0,0 +1,106 @@
++/*
++ * BluezQt - Asynchronous Bluez wrapper library
++ *
++ * Copyright (C) 2016 Bea Lam <bea.lam@jollamobile.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) version 3, or any
++ * later version accepted by the membership of KDE e.V. (or its
++ * successor approved by the membership of KDE e.V.), which shall
++ * act as a proxy defined in Section 6 of version 3 of the license.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include "mediatransport.h"
++#include "mediatransport_p.h"
++#include "pendingcall.h"
++
++namespace BluezQt
++{
++
++MediaTransport::MediaTransport(const QString &path, const QVariantMap &properties)
++    : QObject()
++    , d(new MediaTransportPrivate(path, properties))
++{
++}
++
++MediaTransport::~MediaTransport()
++{
++    delete d;
++}
++
++MediaTransportPtr MediaTransport::toSharedPtr() const
++{
++    return d->q.toStrongRef();
++}
++
++QString MediaTransport::uuid() const
++{
++    return d->m_uuid;
++}
++
++quint8 MediaTransport::codec() const
++{
++    return d->m_codec;
++}
++
++QByteArray MediaTransport::configuration() const
++{
++    return d->m_configuration;
++}
++
++MediaTransport::State MediaTransport::state() const
++{
++    return d->m_state;
++}
++
++quint16 MediaTransport::delay() const
++{
++    return d->m_delay;
++}
++
++PendingCall *MediaTransport::setDelay(quint16 delay)
++{
++    return new PendingCall(d->setDBusProperty(QStringLiteral("Delay"), delay),
++                           PendingCall::ReturnVoid, this);
++}
++
++quint16 MediaTransport::volume() const
++{
++    return d->m_volume;
++}
++
++PendingCall *MediaTransport::setVolume(quint16 volume)
++{
++    return new PendingCall(d->setDBusProperty(QStringLiteral("Volume"), volume),
++                           PendingCall::ReturnVoid, this);
++}
++
++PendingCall *MediaTransport::acquire()
++{
++    return new PendingCall(d->m_bluezMediaTransport->Acquire(),
++                           PendingCall::ReturnMediaTransportSocketInfo, this);
++}
++
++PendingCall *MediaTransport::tryAcquire()
++{
++    return new PendingCall(d->m_bluezMediaTransport->TryAcquire(),
++                           PendingCall::ReturnMediaTransportSocketInfo, this);
++}
++
++PendingCall *MediaTransport::release()
++{
++    return new PendingCall(d->m_bluezMediaTransport->Release(),
++                           PendingCall::ReturnVoid, this);
++}
++
++} // namespace BluezQt
+diff --git a/src/mediatransport.h b/src/mediatransport.h
+new file mode 100644
+index 0000000..aa306ee
+--- /dev/null
++++ b/src/mediatransport.h
+@@ -0,0 +1,214 @@
++/*
++ * BluezQt - Asynchronous BlueZ wrapper library
++ *
++  * Copyright (C) 2016 Bea Lam <bea.lam@jollamobile.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) version 3, or any
++ * later version accepted by the membership of KDE e.V. (or its
++ * successor approved by the membership of KDE e.V.), which shall
++ * act as a proxy defined in Section 6 of version 3 of the license.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef BLUEZQT_MEDIATRANSPORT_H
++#define BLUEZQT_MEDIATRANSPORT_H
++
++#include <QObject>
++
++#include "types.h"
++#include "bluezqt_export.h"
++
++namespace BluezQt
++{
++
++class PendingCall;
++
++/**
++ * Media transport.
++ *
++ * This class represents a media transport interface.
++ */
++class BLUEZQT_EXPORT MediaTransport : public QObject
++{
++    Q_OBJECT
++    Q_PROPERTY(QString uuid READ uuid NOTIFY uuidChanged)
++    Q_PROPERTY(quint8 codec READ codec NOTIFY codecChanged)
++    Q_PROPERTY(QByteArray configuration READ configuration NOTIFY configurationChanged)
++    Q_PROPERTY(State state READ state NOTIFY stateChanged)
++    Q_PROPERTY(quint16 delay READ delay WRITE setDelay NOTIFY delayChanged)
++    Q_PROPERTY(quint16 volume READ volume WRITE setVolume NOTIFY volumeChanged)
++
++public:
++    /** Stream state. */
++    enum State {
++        /* Not streaming. */
++        StreamIdle,
++        /* Streaming but not acquired. */
++        StreamPending,        
++        /* Streaming and acquired. */
++        StreamActive
++    };
++
++    /**
++     * Destroys a MediaTransport object.
++     */
++    ~MediaTransport();
++
++    /**
++     * Returns a shared pointer from this.
++     *
++     * @return MediaTransportPtr
++     */
++    MediaTransportPtr toSharedPtr() const;
++
++    /**
++     * Returns the UUID of the transport's profile.
++     *
++     * @return UUID of profile
++     */
++    QString uuid() const;
++
++    /**
++     * Returns the assigned number of the codec that the transport
++     * supports, according to the transport's profile.
++     *
++     * @return codec assigned number
++     */
++    quint8 codec() const;
++
++    /**
++     * Returns configuration blob data for the transport
++     *
++     * @return configuration blob data
++     */
++    QByteArray configuration() const;
++
++    /**
++     * Returns the current transport state.
++     *
++     * @return current transport state
++     */
++    State state() const;
++
++    /**
++     * Returns the transport delay.
++     *
++     * @return transport delay
++     */
++    quint16 delay() const;
++
++    /**
++     * Sets the transport delay, in units of 1/10 of a millisecond.
++     *
++     * The transport delay is only writeable when the transport was
++     * acquired by the sender.
++     *
++     * @param delay transport delay
++     * @return void pending call
++     */
++    PendingCall *setDelay(quint16 delay);
++
++    /**
++     * Returns the transport volume.
++     *
++     * @return transport volume
++     */
++    quint16 volume() const;
++
++    /**
++     * Sets the transport volume, within a range of 0-127.
++     *
++     * The transport volume is only writeable when the transport was
++     * acquired by the sender.
++     *
++     * @param volume transport volume
++     * @return void pending call
++     */
++    PendingCall *setVolume(quint16 volume);
++
++public Q_SLOTS:
++
++    /**
++     * Acquires a media transport stream.
++     *
++     * Returns a MediaTransportSocketInfo object.
++     *
++     * Possible errors: org.bluez.Error.NotAuthorized, org.bluez.Error.Failed
++     *
++     * @return void pending call
++     */
++    PendingCall *acquire();
++
++    /**
++     * Acquires a media transport stream if the transport is in the
++     * StreamPending state. Otherwise, this function errors with
++     * PendingCall::NotAvailable.
++     *
++     * Returns a MediaTransportSocketInfo object.
++     *
++     * Possible errors: PendingCall::InvalidArguments, PendingCall::Failed, PendingCall::NotAvailable
++     *
++     * @return void pending call
++     */
++    PendingCall *tryAcquire();
++
++    /**
++     * Releases the transport file descriptor.
++     *
++     * @return void pending call
++     */
++    PendingCall *release();
++
++Q_SIGNALS:
++    /**
++     * Indicates that the transport's UUID changed.
++     */
++    void uuidChanged(const QString &uuid);
++
++    /**
++     * Indicates that the transport's codec changed.
++     */
++    void codecChanged(short codec);
++
++    /**
++     * Indicates that the transport's configuration changed.
++     */
++    void configurationChanged(const QByteArray &configuration);
++
++    /**
++     * Indicates that the transport's state changed.
++     */
++    void stateChanged(MediaTransport::State state);
++
++    /**
++     * Indicates that the transport's delay changed.
++     */
++    void delayChanged(quint16 delay);
++
++    /**
++     * Indicates that the transport's volume changed.
++     */
++    void volumeChanged(quint16 volume);
++
++private:
++    explicit MediaTransport(const QString &path, const QVariantMap &properties);
++
++    class MediaTransportPrivate *const d;
++
++    friend class MediaTransportPrivate;
++    friend class DevicePrivate;
++};
++
++} // namespace BluezQt
++
++#endif // BLUEZQT_MEDIATRANSPORT_H
+diff --git a/src/mediatransport_p.cpp b/src/mediatransport_p.cpp
+new file mode 100644
+index 0000000..a08b0f7
+--- /dev/null
++++ b/src/mediatransport_p.cpp
+@@ -0,0 +1,118 @@
++/*
++ * BluezQt - Asynchronous Bluez wrapper library
++ *
++ * Copyright (C) 2016 Bea Lam <bea.lam@jollamobile.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) version 3, or any
++ * later version accepted by the membership of KDE e.V. (or its
++ * successor approved by the membership of KDE e.V.), which shall
++ * act as a proxy defined in Section 6 of version 3 of the license.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include "mediatransport_p.h"
++#include "utils.h"
++#include "macros.h"
++
++namespace BluezQt
++{
++
++static MediaTransport::State stringToState(const QString &state)
++{
++    if (state == QLatin1String("idle")) {
++        return MediaTransport::StreamIdle;
++    } else if (state == QLatin1String("pending")) {
++        return MediaTransport::StreamPending;
++    }
++    return MediaTransport::StreamActive;
++}
++
++MediaTransportPrivate::MediaTransportPrivate(const QString &path, const QVariantMap &properties)
++    : QObject()
++    , m_dbusProperties(0)
++    , m_codec(0)
++    , m_state(MediaTransport::StreamIdle)
++    , m_delay(0)
++    , m_volume(0)
++{
++    m_bluezMediaTransport = new BluezMediaTransport(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
++
++    init(properties);
++}
++
++void MediaTransportPrivate::init(const QVariantMap &properties)
++{
++    m_dbusProperties = new DBusProperties(Strings::orgBluez(), m_bluezMediaTransport->path(),
++                                          DBusConnection::orgBluez(), this);
++
++    connect(m_dbusProperties, &DBusProperties::PropertiesChanged,
++            this, &MediaTransportPrivate::propertiesChanged, Qt::QueuedConnection);
++
++    // Init properties
++    m_uuid = properties.value(QStringLiteral("UUID")).toString();
++    m_codec = properties.value(QStringLiteral("Codec")).toUInt();
++    m_configuration = properties.value(QStringLiteral("Configuration")).toByteArray();
++    m_state = stringToState(properties.value(QStringLiteral("State")).toString());
++    m_delay = properties.value(QStringLiteral("Delay")).toUInt();
++    m_volume = properties.value(QStringLiteral("Volume")).toUInt();
++}
++
++QDBusPendingReply<> MediaTransportPrivate::setDBusProperty(const QString &name, const QVariant &value)
++{
++    return m_dbusProperties->Set(Strings::orgBluezMediaTransport1(), name, QDBusVariant(value));
++}
++
++void MediaTransportPrivate::propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated)
++{
++    if (interface != Strings::orgBluezMediaTransport1()) {
++        return;
++    }
++
++    QVariantMap::const_iterator i;
++    for (i = changed.constBegin(); i != changed.constEnd(); ++i) {
++        const QVariant &value = i.value();
++        const QString &property = i.key();
++
++        if (property == QLatin1String("UUID")) {
++            PROPERTY_CHANGED(m_uuid, toString, uuidChanged);
++        } else if (property == QLatin1String("Codec")) {
++            PROPERTY_CHANGED(m_codec, toUInt, codecChanged);
++        } else if (property == QLatin1String("Configuration")) {
++            PROPERTY_CHANGED(m_configuration, toByteArray, configurationChanged);
++        } else if (property == QLatin1String("State")) {
++            PROPERTY_CHANGED2(m_state, stringToState(value.toString()), stateChanged);
++        } else if (property == QLatin1String("Delay")) {
++            PROPERTY_CHANGED(m_delay, toUInt, delayChanged);
++        } else if (property == QLatin1String("Volume")) {
++            PROPERTY_CHANGED(m_volume, toUInt, volumeChanged);
++        }
++    }
++
++    Q_FOREACH (const QString &property, invalidated) {
++        if (property == QLatin1String("UUID")) {
++            PROPERTY_INVALIDATED(m_uuid, QString(), uuidChanged);
++        } else if (property == QLatin1String("Codec")) {
++            PROPERTY_INVALIDATED(m_codec, 0, codecChanged);
++        } else if (property == QLatin1String("Configuration")) {
++            PROPERTY_INVALIDATED(m_configuration, QByteArray(), configurationChanged);
++        } else if (property == QLatin1String("State")) {
++            PROPERTY_INVALIDATED(m_state, MediaTransport::StreamIdle, stateChanged);
++        } else if (property == QLatin1String("Delay")) {
++            PROPERTY_INVALIDATED(m_delay, 0, delayChanged);
++        } else if (property == QLatin1String("Volume")) {
++            PROPERTY_INVALIDATED(m_volume, 0, volumeChanged);
++        }
++    }
++}
++
++} // namespace BluezQt
+diff --git a/src/mediatransport_p.h b/src/mediatransport_p.h
+new file mode 100644
+index 0000000..51785e0
+--- /dev/null
++++ b/src/mediatransport_p.h
+@@ -0,0 +1,64 @@
++/*
++ * BluezQt - Asynchronous Bluez wrapper library
++ *
++ * Copyright (C) 2016 Bea Lam <bea.lam@jollamobile.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) version 3, or any
++ * later version accepted by the membership of KDE e.V. (or its
++ * successor approved by the membership of KDE e.V.), which shall
++ * act as a proxy defined in Section 6 of version 3 of the license.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef BLUEZQT_MEDIATRANSPORT_P_H
++#define BLUEZQT_MEDIATRANSPORT_P_H
++
++#include <QObject>
++
++#include "mediatransport.h"
++#include "bluezmediatransport1.h"
++#include "dbusproperties.h"
++
++namespace BluezQt
++{
++
++typedef org::bluez::MediaTransport1 BluezMediaTransport;
++typedef org::freedesktop::DBus::Properties DBusProperties;
++
++class MediaTransportPrivate : public QObject
++{
++    Q_OBJECT
++
++public:
++    explicit MediaTransportPrivate(const QString &path, const QVariantMap &properties);
++
++    void init(const QVariantMap &properties);
++
++    QDBusPendingReply<> setDBusProperty(const QString &name, const QVariant &value);
++    void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
++
++    QWeakPointer<MediaTransport> q;
++    BluezMediaTransport *m_bluezMediaTransport;
++    DBusProperties *m_dbusProperties;
++
++    QString m_uuid;
++    quint8 m_codec;
++    QByteArray m_configuration;
++    MediaTransport::State m_state;
++    quint16 m_delay;
++    quint16 m_volume;
++};
++
++} // namespace BluezQt
++
++#endif // BLUEZQT_MEDIATRANSPORT_P_H
+diff --git a/src/mediatransportsocketinfo.cpp b/src/mediatransportsocketinfo.cpp
+new file mode 100644
+index 0000000..60b3fb8
+--- /dev/null
++++ b/src/mediatransportsocketinfo.cpp
+@@ -0,0 +1,89 @@
++/*
++ * BluezQt - Asynchronous Bluez wrapper library
++ *
++ * Copyright (C) 2016 Bea Lam <bea.lam@jollamobile.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) version 3, or any
++ * later version accepted by the membership of KDE e.V. (or its
++ * successor approved by the membership of KDE e.V.), which shall
++ * act as a proxy defined in Section 6 of version 3 of the license.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include "mediatransportsocketinfo.h"
++
++namespace BluezQt
++{
++
++class MediaTransportSocketInfoPrivate
++{
++public:
++    qintptr m_descriptor;
++    quint16 m_readMTU;
++    quint16 m_writeMTU;
++};
++
++MediaTransportSocketInfo::MediaTransportSocketInfo()
++    : d(new MediaTransportSocketInfoPrivate)
++{
++    d->m_descriptor = -1;
++    d->m_readMTU = 0;
++    d->m_writeMTU = 0;
++}
++
++MediaTransportSocketInfo::MediaTransportSocketInfo(qintptr descriptor, quint64 readMTU, quint64 writeMTU)
++    : d(new MediaTransportSocketInfoPrivate)
++{
++    d->m_descriptor = descriptor;
++    d->m_readMTU = readMTU;
++    d->m_writeMTU = writeMTU;
++}
++
++MediaTransportSocketInfo::~MediaTransportSocketInfo()
++{
++}
++
++MediaTransportSocketInfo::MediaTransportSocketInfo(const MediaTransportSocketInfo &other)
++    : d(other.d)
++{
++}
++
++MediaTransportSocketInfo &MediaTransportSocketInfo::operator=(const MediaTransportSocketInfo &other)
++{
++    if (d != other.d) {
++        d = other.d;
++    }
++    return *this;
++}
++
++bool MediaTransportSocketInfo::isValid() const
++{
++    return d->m_descriptor != -1;
++}
++
++qintptr MediaTransportSocketInfo::socketDescriptor() const
++{
++    return d->m_descriptor;
++}
++
++quint64 MediaTransportSocketInfo::readMTU() const
++{
++    return d->m_readMTU;
++}
++
++quint64 MediaTransportSocketInfo::writeMTU() const
++{
++    return d->m_writeMTU;
++}
++
++} // namespace BluezQt
+diff --git a/src/mediatransportsocketinfo.h b/src/mediatransportsocketinfo.h
+new file mode 100644
+index 0000000..ae4e968
+--- /dev/null
++++ b/src/mediatransportsocketinfo.h
+@@ -0,0 +1,105 @@
++/*
++ * BluezQt - Asynchronous BlueZ wrapper library
++ *
++ * Copyright (C) 2016 Bea Lam <bea.lam@jollamobile.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) version 3, or any
++ * later version accepted by the membership of KDE e.V. (or its
++ * successor approved by the membership of KDE e.V.), which shall
++ * act as a proxy defined in Section 6 of version 3 of the license.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef BLUEZQT_MEDIATRANSPORTSOCKETINFO_H
++#define BLUEZQT_MEDIATRANSPORTSOCKETINFO_H
++
++#include <QString>
++#include <QSharedPointer>
++
++#include "bluezqt_export.h"
++
++namespace BluezQt
++{
++
++/**
++ * Media transport socket information.
++ */
++class BLUEZQT_EXPORT MediaTransportSocketInfo
++{
++public:
++    /**
++     * Creates a new invalid MediaTransportSocketInfo object.
++     */
++    explicit MediaTransportSocketInfo();
++
++    /**
++     * Destroys an MediaTransportSocketInfo object.
++     */
++    virtual ~MediaTransportSocketInfo();
++
++    /**
++     * Copy constructor.
++     *
++     * @param other
++     */
++    MediaTransportSocketInfo(const MediaTransportSocketInfo &other);
++
++    /**
++     * Copy assignment operator.
++     *
++     * @param other
++     */
++    MediaTransportSocketInfo &operator=(const MediaTransportSocketInfo &other);
++
++    /**
++     * Returns whether this socket info is valid.
++     *
++     * @return true if socket info is valid
++     */
++    bool isValid() const;
++
++    /**
++     * Returns the native socket descriptor of the transport, or -1
++     * if this object is invalid.
++     *
++     * @return transport file descriptor
++     */
++    qintptr socketDescriptor() const;
++
++    /**
++     * Returns the read MTU of the transport socket.
++     *
++     * @return read MTU of transport
++     */
++    quint64 readMTU() const;
++
++    /**
++     * Returns the write MTU of the transport socket.
++     *
++     * @return write MTU of transport
++     */
++    quint64 writeMTU() const;
++
++private:
++    explicit MediaTransportSocketInfo(qintptr descriptor, quint64 readMTU, quint64 writeMTU);
++
++    QSharedPointer<class MediaTransportSocketInfoPrivate> d;
++
++    friend class PendingCallPrivate;
++};
++
++} // namespace BluezQt
++
++Q_DECLARE_METATYPE(BluezQt::MediaTransportSocketInfo)
++
++#endif // BLUEZQT_MEDIATRANSPORTSOCKETINFO_H
+diff --git a/src/pendingcall.cpp b/src/pendingcall.cpp
+index 4f950f1..8b19c4e 100644
+--- a/src/pendingcall.cpp
++++ b/src/pendingcall.cpp
+@@ -24,12 +24,14 @@
+ #include "obextransfer.h"
+ #include "obextransfer_p.h"
+ #include "obexfiletransferentry.h"
++#include "mediatransportsocketinfo.h"
+ #include "bluezqt_dbustypes.h"
+ #include "debug.h"
+ 
+ #include <QTimer>
+ #include <QDBusPendingReply>
+ #include <QDBusPendingCallWatcher>
++#include <QDBusUnixFileDescriptor>
+ 
+ namespace BluezQt
+ {
+@@ -84,6 +86,7 @@ public:
+     void processObjectPathReply(const QDBusPendingReply<QDBusObjectPath> &reply);
+     void processFileTransferListReply(const QDBusPendingReply<QVariantMapList> &reply);
+     void processTransferWithPropertiesReply(const QDBusPendingReply<QDBusObjectPath, QVariantMap> &reply);
++    void processMediaTransportSocketInfoReply(const QDBusPendingReply<QDBusUnixFileDescriptor, quint16, quint16> &reply);
+     void processError(const QDBusError &m_error);
+ 
+     void emitFinished();
+@@ -136,6 +139,10 @@ void PendingCallPrivate::processReply(QDBusPendingCallWatcher *call)
+         processTransferWithPropertiesReply(*call);
+         break;
+ 
++    case PendingCall::ReturnMediaTransportSocketInfo:
++        processMediaTransportSocketInfoReply(*call);
++        break;
++
+     default:
+         break;
+     }
+@@ -196,6 +203,17 @@ void PendingCallPrivate::processTransferWithPropertiesReply(const QDBusPendingRe
+     m_value.append(QVariant::fromValue(transfer));
+ }
+ 
++void PendingCallPrivate::processMediaTransportSocketInfoReply(const QDBusPendingReply<QDBusUnixFileDescriptor, quint16, quint16> &reply)
++{
++    processError(reply.error());
++    if (reply.isError()) {
++        return;
++    }
++
++    MediaTransportSocketInfo transportInfo(reply.argumentAt<0>().fileDescriptor(), reply.argumentAt<1>(), reply.argumentAt<2>());
++    m_value.append(QVariant::fromValue(transportInfo));
++}
++
+ void PendingCallPrivate::processError(const QDBusError &error)
+ {
+     if (error.isValid()) {
+diff --git a/src/pendingcall.h b/src/pendingcall.h
+index a368d6d..82b824f 100644
+--- a/src/pendingcall.h
++++ b/src/pendingcall.h
+@@ -178,7 +178,8 @@ private:
+         ReturnString,
+         ReturnObjectPath,
+         ReturnFileTransferList,
+-        ReturnTransferWithProperties
++        ReturnTransferWithProperties,
++        ReturnMediaTransportSocketInfo
+     };
+ 
+     explicit PendingCall(const QDBusPendingCall &call, ReturnType type, QObject *parent = nullptr);
+@@ -191,6 +192,7 @@ private:
+     friend class Adapter;
+     friend class Device;
+     friend class MediaPlayer;
++    friend class MediaTransport;
+     friend class ObexManager;
+     friend class ObexTransfer;
+     friend class ObexSession;
+diff --git a/src/src.pro b/src/src.pro
+index 91d6939..5d3eca8 100644
+--- a/src/src.pro
++++ b/src/src.pro
+@@ -23,6 +23,7 @@ system(qdbusxml2cpp -c BluezAgentManager -p bluezagentmanager1.h:bluezagentmanag
+ system(qdbusxml2cpp -c BluezProfileManager -p bluezprofilemanager1.h:bluezprofilemanager1.cpp $$XML_DIR/org.bluez.ProfileManager1.xml)
+ system(qdbusxml2cpp -c BluezDevice -p bluezdevice1.h:bluezdevice1.cpp $$XML_DIR/org.bluez.Device1.xml)
+ system(qdbusxml2cpp -c BluezMediaPlayer -p bluezmediaplayer1.h:bluezmediaplayer1.cpp $$XML_DIR/org.bluez.MediaPlayer1.xml)
++system(qdbusxml2cpp -c BluezMediaTransport -p bluezmediatransport1.h:bluezmediatransport1.cpp $$XML_DIR/org.bluez.MediaTransport1.xml)
+ system(qdbusxml2cpp -c ObexAgentManager -p obexagentmanager1.h:obexagentmanager1.cpp $$XML_DIR/org.bluez.obex.AgentManager1.xml)
+ system(qdbusxml2cpp -c ObexClient -p obexclient1.h:obexclient1.cpp $$XML_DIR/org.bluez.obex.Client1.xml)
+ system(qdbusxml2cpp -c ObexTransfer -p obextransfer1.h:obextransfer1.cpp $$XML_DIR/org.bluez.obex.Transfer1.xml)
+@@ -38,6 +39,7 @@ DBUS_SOURCES += \
+     bluezprofilemanager1.cpp \
+     bluezdevice1.cpp \
+     bluezmediaplayer1.cpp \
++    bluezmediatransport1.cpp \
+     obexagentmanager1.cpp \
+     obexclient1.cpp \
+     obextransfer1.cpp \
+@@ -53,6 +55,7 @@ DBUS_HEADERS += \
+     bluezprofilemanager1.h \
+     bluezdevice1.h \
+     bluezmediaplayer1.h \
++    bluezmediatransport1.h \
+     obexagentmanager1.h \
+     obexclient1.h \
+     obextransfer1.h \
+@@ -72,6 +75,9 @@ SOURCES += \
+     mediaplayer.cpp \
+     mediaplayer_p.cpp \
+     mediaplayertrack.cpp \
++    mediatransport.cpp \
++    mediatransport_p.cpp \
++    mediatransportsocketinfo.cpp \
+     devicesmodel.cpp \
+     job.cpp \
+     initmanagerjob.cpp \
+@@ -103,6 +109,8 @@ PUBLIC_HEADERS += \
+     input.h \
+     mediaplayer.h \
+     mediaplayertrack.h \
++    mediatransport.h \
++    mediatransportsocketinfo.h \
+     devicesmodel.h \
+     job.h \
+     initmanagerjob.h \
+@@ -131,6 +139,7 @@ HEADERS += \
+     job_p.h \
+     manager_p.h \
+     mediaplayer_p.h \
++    mediatransport_p.h \
+     obexmanager_p.h \
+     obexsession_p.h \
+     obextransfer_p.h \
+diff --git a/src/types.h b/src/types.h
+index 8afcf67..b7e8b28 100644
+--- a/src/types.h
++++ b/src/types.h
+@@ -34,6 +34,8 @@ class Device;
+ class Input;
+ class MediaPlayer;
+ class MediaPlayerTrack;
++class MediaTransport;
++class MediaTransportSocketInfo;
+ class Agent;
+ class DevicesModel;
+ class InitManagerJob;
+@@ -53,6 +55,7 @@ typedef QSharedPointer<BluezQt::Adapter> AdapterPtr;
+ typedef QSharedPointer<BluezQt::Device> DevicePtr;
+ typedef QSharedPointer<BluezQt::Input> InputPtr;
+ typedef QSharedPointer<BluezQt::MediaPlayer> MediaPlayerPtr;
++typedef QSharedPointer<BluezQt::MediaTransport> MediaTransportPtr;
+ typedef QSharedPointer<BluezQt::ObexManager> ObexManagerPtr;
+ typedef QSharedPointer<BluezQt::ObexSession> ObexSessionPtr;
+ typedef QSharedPointer<BluezQt::ObexTransfer> ObexTransferPtr;
+diff --git a/src/utils.cpp b/src/utils.cpp
+index aed8250..5fd9a1b 100644
+--- a/src/utils.cpp
++++ b/src/utils.cpp
+@@ -44,6 +44,7 @@ public:
+     QString orgBluezDevice1;
+     QString orgBluezInput1;
+     QString orgBluezMediaPlayer1;
++    QString orgBluezMediaTransport1;
+     QString orgBluezAgentManager1;
+     QString orgBluezProfileManager1;
+     QString orgBluezObex;
+@@ -64,6 +65,7 @@ GlobalData::GlobalData()
+     orgBluezDevice1 = QStringLiteral("org.bluez.Device1");
+     orgBluezInput1 = QStringLiteral("org.bluez.Input1");
+     orgBluezMediaPlayer1 = QStringLiteral("org.bluez.MediaPlayer1");
++    orgBluezMediaTransport1 = QStringLiteral("org.bluez.MediaTransport1");
+     orgBluezAgentManager1 = QStringLiteral("org.bluez.AgentManager1");
+     orgBluezProfileManager1 = QStringLiteral("org.bluez.ProfileManager1");
+     orgBluezObex = QStringLiteral("org.bluez.obex");
+@@ -113,6 +115,11 @@ QString Strings::orgBluezMediaPlayer1()
+     return globalData->orgBluezMediaPlayer1;
+ }
+ 
++QString Strings::orgBluezMediaTransport1()
++{
++    return globalData->orgBluezMediaTransport1;
++}
++
+ QString Strings::orgBluezAgentManager1()
+ {
+     return globalData->orgBluezAgentManager1;
+diff --git a/src/utils.h b/src/utils.h
+index fd49d8e..9e5e7dd 100644
+--- a/src/utils.h
++++ b/src/utils.h
+@@ -41,6 +41,7 @@ QString orgBluezAdapter1();
+ QString orgBluezDevice1();
+ QString orgBluezInput1();
+ QString orgBluezMediaPlayer1();
++QString orgBluezMediaTransport1();
+ QString orgBluezAgentManager1();
+ QString orgBluezProfileManager1();
+ QString orgBluezObex();
+-- 
+2.33.1
+
