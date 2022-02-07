@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Bea Lam <bea.lam@jollamobile.com>
 Date: Thu, 21 Jul 2016 05:37:23 +0930
-Subject: [PATCH] Add rpm spec and .pro files
+Subject: [PATCH] Add .pro files
 
 ---
  bluez-qt.pro            |   6 ++
@@ -289,5 +289,5 @@ index 0000000..91d6939
 +
 +INSTALLS += target headers pkgconfig
 -- 
-2.33.1
+2.34.1
 

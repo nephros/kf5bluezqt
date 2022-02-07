@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Bea Lam <bea.lam@jollamobile.com>
+Date: Thu, 10 Nov 2016 17:16:39 +1000
+Subject: [PATCH] Add Manager::pairWithDevice(QString) to pair with unknown
+ devices. Contributes to JB#36678
+
+---
+ src/manager.cpp |  9 +++++++++
+ src/manager.h   | 10 ++++++++++
+ 2 files changed, 19 insertions(+)
+
+diff --git a/src/manager.cpp b/src/manager.cpp
+index 4bd0068..38146c2 100644
+--- a/src/manager.cpp
++++ b/src/manager.cpp
+@@ -246,4 +246,13 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
+                            PendingCall::ReturnVoid, this);
+ }
+ 
++PendingCall *Manager::pairWithDevice(const QString &address)
++{
++    BluezQt::DevicePtr device = deviceForAddress(address);
++    if (device) {
++        return device->pair();
++    }
++    return new PendingCall(PendingCall::InternalError, QStringLiteral("Device unknown!"), this);
++}
++
+ } // namespace BluezQt
+diff --git a/src/manager.h b/src/manager.h
+index 3165509..1700dd8 100644
+--- a/src/manager.h
++++ b/src/manager.h
+@@ -295,6 +295,16 @@ public:
+      */
+     PendingCall *unregisterProfile(Profile *profile);
+ 
++    /**
++     * Pairs with a device.
++     *
++     * Possible errors: PendingCall::DoesNotExist
++     *
++     * @param address address of the device
++     * @return pending call with null if the device is known, otherwise with the device object path
++     */
++    PendingCall *pairWithDevice(const QString &address);
++
+ Q_SIGNALS:
+     /**
+      * Indicates that operational state have changed.
+-- 
+2.34.1
+

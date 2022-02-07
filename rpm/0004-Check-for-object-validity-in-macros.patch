@@ -9,28 +9,11 @@ the Transfer object when statusChanged=Complete, the application
 crashes as ObexTransferPrivate::propertiesChanged() attempts to emit
 the transferredChanged signal immediately after the statusChanged
 signal, and q.data() is no longer valid. To avoid this, check for the
-validity of q.data() in macros.h. For completeness, update
-macros_bluez4.h to check for the validity of obj.
+validity of q.data() in macros.h.
 ---
- src/bluez4/macros_bluez4_p.h |  4 +++-
- src/macros.h                 | 12 +++++++++---
- 2 files changed, 12 insertions(+), 4 deletions(-)
+ src/macros.h | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
 
-diff --git a/src/bluez4/macros_bluez4_p.h b/src/bluez4/macros_bluez4_p.h
-index cb1808c..adca81c 100644
---- a/src/bluez4/macros_bluez4_p.h
-+++ b/src/bluez4/macros_bluez4_p.h
-@@ -31,7 +31,9 @@
-     } else { \
-         invalidated << property; \
-     } \
--    obj->propertiesChanged(interface, changed, invalidated); \
-+    if (obj) { \
-+        obj->propertiesChanged(interface, changed, invalidated); \
-+    } \
- }
- 
- #endif // BLUEZQT_MACROS_H
 diff --git a/src/macros.h b/src/macros.h
 index 9b6c6f3..bdbe70d 100644
 --- a/src/macros.h
@@ -67,5 +50,5 @@ index 9b6c6f3..bdbe70d 100644
  
  #endif // BLUEZQT_MACROS_H
 -- 
-2.33.1
+2.34.1
 

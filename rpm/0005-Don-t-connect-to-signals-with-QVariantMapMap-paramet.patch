@@ -21,17 +21,17 @@ available interfaces, then updates the internal properties as per the
 normal interfacesAdded() behaviour.
 ---
  src/device_p.cpp      |  6 +++---
- src/manager_p.cpp     | 46 +++++++++++++++++++++++++++++++++++++++++--
+ src/manager_p.cpp     | 44 +++++++++++++++++++++++++++++++++++++++++--
  src/manager_p.h       |  2 ++
- src/obexmanager_p.cpp | 42 +++++++++++++++++++++++++++++++++++++--
+ src/obexmanager_p.cpp | 40 +++++++++++++++++++++++++++++++++++++--
  src/obexmanager_p.h   |  2 ++
- 5 files changed, 91 insertions(+), 7 deletions(-)
+ 5 files changed, 87 insertions(+), 7 deletions(-)
 
 diff --git a/src/device_p.cpp b/src/device_p.cpp
-index 30c6046..868ac65 100644
+index 9ba34c4..da49af2 100644
 --- a/src/device_p.cpp
 +++ b/src/device_p.cpp
-@@ -103,17 +103,17 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
+@@ -91,17 +91,17 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
      QVariantMapMap::const_iterator it;
  
      for (it = interfaces.constBegin(); it != interfaces.constEnd(); ++it) {
@@ -53,10 +53,10 @@ index 30c6046..868ac65 100644
              m_mediaTransport->d->q = m_mediaTransport.toWeakRef();
              Q_EMIT q.data()->mediaTransportChanged(m_mediaTransport);
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index 495f3e2..aba94f9 100644
+index aaec901..bfdf4e1 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
-@@ -196,8 +196,12 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+@@ -162,8 +162,12 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
          return;
      }
  
@@ -71,7 +71,7 @@ index 495f3e2..aba94f9 100644
      connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
              this, &ManagerPrivate::interfacesRemoved);
  
-@@ -292,6 +296,36 @@ void ManagerPrivate::serviceUnregistered()
+@@ -248,6 +252,34 @@ void ManagerPrivate::serviceUnregistered()
      Q_EMIT q->operationalChanged(false);
  }
  
@@ -79,10 +79,8 @@ index 495f3e2..aba94f9 100644
 +{
 +    Q_UNUSED(objectPath)
 +
-+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 +    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
 +    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ManagerPrivate::getInterfacesManagedObjectsFinished);
-+#endif
 +}
 +
 +void ManagerPrivate::getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
@@ -108,7 +106,7 @@ index 495f3e2..aba94f9 100644
  void ManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
  {
      const QString &path = objectPath.path();
-@@ -381,6 +415,10 @@ void ManagerPrivate::rfkillStateChanged(Rfkill::State state)
+@@ -333,6 +365,10 @@ void ManagerPrivate::rfkillStateChanged(Rfkill::State state)
  
  void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &properties)
  {
@@ -119,7 +117,7 @@ index 495f3e2..aba94f9 100644
      AdapterPtr adapter = AdapterPtr(new Adapter(adapterPath, properties));
      adapter->d->q = adapter.toWeakRef();
      m_adapters.insert(adapterPath, adapter);
-@@ -404,6 +442,10 @@ void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &p
+@@ -352,6 +388,10 @@ void ManagerPrivate::addAdapter(const QString &adapterPath, const QVariantMap &p
  
  void ManagerPrivate::addDevice(const QString &devicePath, const QVariantMap &properties)
  {
@@ -131,10 +129,10 @@ index 495f3e2..aba94f9 100644
      if (!adapter) {
          return;
 diff --git a/src/manager_p.h b/src/manager_p.h
-index ea56da8..2f57d1c 100644
+index 0b26d1b..4cfad85 100644
 --- a/src/manager_p.h
 +++ b/src/manager_p.h
-@@ -115,6 +115,8 @@ Q_SIGNALS:
+@@ -97,6 +97,8 @@ Q_SIGNALS:
  
  private Q_SLOTS:
      void dummy();
@@ -144,10 +142,10 @@ index ea56da8..2f57d1c 100644
  };
  
 diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
-index c4c26a7..089f512 100644
+index 2535b62..05608a8 100644
 --- a/src/obexmanager_p.cpp
 +++ b/src/obexmanager_p.cpp
-@@ -125,8 +125,12 @@ void ObexManagerPrivate::load()
+@@ -116,8 +116,12 @@ void ObexManagerPrivate::load()
      m_dbusObjectManager = new DBusObjectManager(Strings::orgBluezObex(), QStringLiteral("/"),
              DBusConnection::orgBluezObex(), this);
  
@@ -162,7 +160,7 @@ index c4c26a7..089f512 100644
      connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved,
              this, &ObexManagerPrivate::interfacesRemoved);
  
-@@ -252,6 +256,36 @@ void ObexManagerPrivate::serviceUnregistered()
+@@ -215,6 +219,34 @@ void ObexManagerPrivate::serviceUnregistered()
      Q_EMIT q->operationalChanged(false);
  }
  
@@ -170,10 +168,8 @@ index c4c26a7..089f512 100644
 +{
 +    Q_UNUSED(objectPath)
 +
-+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 +    QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(m_dbusObjectManager->GetManagedObjects(), this);
 +    connect(watcher, &QDBusPendingCallWatcher::finished, this, &ObexManagerPrivate::getInterfacesManagedObjectsFinished);
-+#endif
 +}
 +
 +void ObexManagerPrivate::getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
@@ -199,7 +195,7 @@ index c4c26a7..089f512 100644
  void ObexManagerPrivate::interfacesAdded(const QDBusObjectPath &objectPath, const QVariantMapMap &interfaces)
  {
      const QString &path = objectPath.path();
-@@ -277,6 +311,10 @@ void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, co
+@@ -240,6 +272,10 @@ void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, co
  
  void ObexManagerPrivate::addSession(const QString &sessionPath, const QVariantMap &properties)
  {
@@ -211,10 +207,10 @@ index c4c26a7..089f512 100644
      session->d->q = session.toWeakRef();
      m_sessions.insert(sessionPath, session);
 diff --git a/src/obexmanager_p.h b/src/obexmanager_p.h
-index 00a7af9..2ef373c 100644
+index 437d663..eed7191 100644
 --- a/src/obexmanager_p.h
 +++ b/src/obexmanager_p.h
-@@ -97,6 +97,8 @@ Q_SIGNALS:
+@@ -79,6 +79,8 @@ Q_SIGNALS:
  
  private Q_SLOTS:
      void dummy();
@@ -224,5 +220,5 @@ index 00a7af9..2ef373c 100644
  
  } // namespace BluezQt
 -- 
-2.33.1
+2.34.1
 

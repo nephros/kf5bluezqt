@@ -1078,5 +1078,5 @@ index fd49d8e..9e5e7dd 100644
  QString orgBluezProfileManager1();
  QString orgBluezObex();
 -- 
-2.33.1
+2.34.1
 

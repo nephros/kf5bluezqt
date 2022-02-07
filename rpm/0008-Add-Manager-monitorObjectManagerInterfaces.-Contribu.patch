@@ -6,16 +6,16 @@ Subject: [PATCH] Add Manager::monitorObjectManagerInterfaces. Contributes to
 
 ---
  src/manager.cpp   | 14 ++++++++++++++
- src/manager.h     | 27 ++++++++++++++++++++++++++
- src/manager_p.cpp | 48 ++++++++++++++++++++++++++++++++++++++---------
+ src/manager.h     | 27 +++++++++++++++++++++++++++
+ src/manager_p.cpp | 46 +++++++++++++++++++++++++++++++++++++---------
  src/manager_p.h   |  3 +++
- 4 files changed, 83 insertions(+), 9 deletions(-)
+ 4 files changed, 81 insertions(+), 9 deletions(-)
 
 diff --git a/src/manager.cpp b/src/manager.cpp
-index d96f8f7..8e13f00 100644
+index 38146c2..75b36cc 100644
 --- a/src/manager.cpp
 +++ b/src/manager.cpp
-@@ -86,6 +86,20 @@ bool Manager::setBluetoothBlocked(bool blocked)
+@@ -82,6 +82,20 @@ bool Manager::setBluetoothBlocked(bool blocked)
      }
  }
  
@@ -89,10 +89,10 @@ index 1700dd8..9823ddb 100644
       * Indicates that adapter was added.
       */
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index aba94f9..b0e9751 100644
+index bfdf4e1..bf7c70a 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
-@@ -53,6 +53,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
+@@ -47,6 +47,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
      , m_bluezRunning(false)
      , m_loaded(false)
      , m_adaptersLoaded(false)
@@ -100,7 +100,7 @@ index aba94f9..b0e9751 100644
  {
      qDBusRegisterMetaType<DBusManagerStruct>();
      qDBusRegisterMetaType<QVariantMapMap>();
-@@ -196,18 +197,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+@@ -162,18 +163,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
          return;
      }
  
@@ -121,8 +121,8 @@ index aba94f9..b0e9751 100644
      Q_EMIT q->operationalChanged(true);
  
      if (q->isBluetoothOperational()) {
-@@ -220,6 +214,42 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
- #endif
+@@ -183,6 +177,40 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+     Q_EMIT initFinished();
  }
  
 +void ManagerPrivate::updateObjectManagerConnections()
@@ -131,7 +131,6 @@ index aba94f9..b0e9751 100644
 +        return;
 +    }
 +
-+#if KF5BLUEZQT_BLUEZ_VERSION >= 5
 +    if (m_monitorObjectManagerInterfaces) {
 +        DBusConnection::orgBluez().connect(Strings::orgBluez(),
 +                                           QStringLiteral("/"),
@@ -158,17 +157,16 @@ index aba94f9..b0e9751 100644
 +                       this, &ManagerPrivate::interfacesRemoved);
 +        }
 +    }
-+#endif
 +}
 +
  void ManagerPrivate::clear()
  {
      m_loaded = false;
 diff --git a/src/manager_p.h b/src/manager_p.h
-index 2f57d1c..5da1c2e 100644
+index 4cfad85..ce15bf4 100644
 --- a/src/manager_p.h
 +++ b/src/manager_p.h
-@@ -86,6 +86,8 @@ public:
+@@ -75,6 +75,8 @@ public:
      bool rfkillBlocked() const;
      void setUsableAdapter(const AdapterPtr &adapter);
  
@@ -176,15 +174,15 @@ index 2f57d1c..5da1c2e 100644
 +
      Manager *q;
      Rfkill *m_rfkill;
- #if KF5BLUEZQT_BLUEZ_VERSION >= 5
-@@ -102,6 +104,7 @@ public:
+     DBusObjectManager *m_dbusObjectManager;
+@@ -89,6 +91,7 @@ public:
      bool m_bluezRunning;
      bool m_loaded;
      bool m_adaptersLoaded;
 +    bool m_monitorObjectManagerInterfaces;
      bool m_bluetoothBlocked;
  
- #if KF5BLUEZQT_BLUEZ_VERSION < 5
+ Q_SIGNALS:
 -- 
-2.33.1
+2.34.1
 

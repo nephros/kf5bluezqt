@@ -13,10 +13,10 @@ pointer.
  1 file changed, 7 insertions(+)
 
 diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
-index 089f512..9a2158c 100644
+index 05608a8..7a19e29 100644
 --- a/src/obexmanager_p.cpp
 +++ b/src/obexmanager_p.cpp
-@@ -227,6 +227,13 @@ void ObexManagerPrivate::clear()
+@@ -196,6 +196,13 @@ void ObexManagerPrivate::clear()
      if (m_dbusObjectManager) {
          m_dbusObjectManager->deleteLater();
          m_dbusObjectManager = nullptr;
@@ -28,8 +28,8 @@ index 089f512..9a2158c 100644
 +                                               this,
 +                                               SLOT(interfacesAddedSlot(QDBusObjectPath)));
      }
- #else
-     if (m_bluez4) {
+ }
+ 
 -- 
-2.33.1
+2.34.1
 

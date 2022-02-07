@@ -18,10 +18,10 @@ Contributes to JB#38153
  6 files changed, 53 insertions(+)
 
 diff --git a/src/adapter.cpp b/src/adapter.cpp
-index 27da474..c1457bf 100644
+index cc38928..654b86d 100644
 --- a/src/adapter.cpp
 +++ b/src/adapter.cpp
-@@ -159,6 +159,11 @@ QList<DevicePtr> Adapter::devices() const
+@@ -151,6 +151,11 @@ QList<DevicePtr> Adapter::devices() const
      return d->m_devices;
  }
  
@@ -34,7 +34,7 @@ index 27da474..c1457bf 100644
  {
      Q_FOREACH (DevicePtr device, d->m_devices) {
 diff --git a/src/adapter.h b/src/adapter.h
-index a68551e..a19c129 100644
+index 2c09218..5023e15 100644
 --- a/src/adapter.h
 +++ b/src/adapter.h
 @@ -59,6 +59,7 @@ class BLUEZQT_EXPORT Adapter : public QObject
@@ -72,18 +72,18 @@ index a68551e..a19c129 100644
      explicit Adapter(const QString &path, const QVariantMap &properties);
  
 diff --git a/src/adapter_p.cpp b/src/adapter_p.cpp
-index e4280f3..59c00fa 100644
+index 786fa7d..5c84c9c 100644
 --- a/src/adapter_p.cpp
 +++ b/src/adapter_p.cpp
-@@ -43,6 +43,7 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
+@@ -37,6 +37,7 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
      , m_discoverableTimeout(0)
      , m_pairable(false)
      , m_pairableTimeout(0)
 +    , m_connected(false)
  {
- #if KF5BLUEZQT_BLUEZ_VERSION >= 5
      m_bluezAdapter = new BluezAdapter(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
-@@ -88,6 +89,8 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
+ 
+@@ -76,6 +77,8 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
      m_devices.append(device);
      Q_EMIT q.data()->deviceAdded(device);
  
@@ -92,7 +92,7 @@ index e4280f3..59c00fa 100644
      connect(device.data(), &Device::deviceChanged, q.data(), &Adapter::deviceChanged);
  }
  
-@@ -97,6 +100,8 @@ void AdapterPrivate::removeDevice(const DevicePtr &device)
+@@ -85,6 +88,8 @@ void AdapterPrivate::removeDevice(const DevicePtr &device)
      Q_EMIT device->deviceRemoved(device);
      Q_EMIT q.data()->deviceRemoved(device);
  
@@ -101,7 +101,7 @@ index e4280f3..59c00fa 100644
      disconnect(device.data(), &Device::deviceChanged, q.data(), &Adapter::deviceChanged);
  }
  
-@@ -154,4 +159,20 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
+@@ -138,4 +143,20 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
      Q_EMIT q.data()->adapterChanged(q.toStrongRef());
  }
  
@@ -123,26 +123,26 @@ index e4280f3..59c00fa 100644
 +
  } // namespace BluezQt
 diff --git a/src/adapter_p.h b/src/adapter_p.h
-index 10be3af..0deb6cc 100644
+index 734364d..88760fc 100644
 --- a/src/adapter_p.h
 +++ b/src/adapter_p.h
-@@ -60,6 +60,8 @@ public:
+@@ -51,6 +51,8 @@ public:
      QDBusPendingReply<> setDBusProperty(const QString &name, const QVariant &value);
      void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
  
 +    void deviceConnectedChanged();
 +
      QWeakPointer<Adapter> q;
- #if KF5BLUEZQT_BLUEZ_VERSION >= 5
      BluezAdapter *m_bluezAdapter;
-@@ -78,6 +80,7 @@ public:
+     DBusProperties *m_dbusProperties;
+@@ -67,6 +69,7 @@ public:
      bool m_discovering;
      QStringList m_uuids;
      QList<DevicePtr> m_devices;
 +    bool m_connected;
      QString m_modalias;
+ };
  
- #if KF5BLUEZQT_BLUEZ_VERSION < 5
 diff --git a/src/imports/declarativeadapter.cpp b/src/imports/declarativeadapter.cpp
 index cdb71a2..13d2338 100644
 --- a/src/imports/declarativeadapter.cpp
@@ -198,5 +198,5 @@ index 315e4bd..13f1456 100644
  private Q_SLOTS:
      void slotDeviceAdded(BluezQt::DevicePtr device);
 -- 
-2.33.1
+2.34.1
 

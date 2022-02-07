@@ -17,18 +17,15 @@ Requires(postun): /sbin/ldconfig
 Requires: bluez5
 Requires: bluez5-obexd
 
-Patch1:  0001-Add-rpm-spec-and-.pro-files.patch
-Patch2:  0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
-Patch3:  0003-Add-limited-support-for-a-BlueZ-4-backend.-Fixes-JB-.patch
-Patch4:  0004-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
-Patch5:  0005-Provide-binary-compatibility-between-BlueZ-variant-p.patch
-Patch6:  0006-Implement-org.bluez.Agent.ConfirmModeChange-in-BlueZ.patch
-Patch7:  0007-Check-for-object-validity-in-macros.patch
-Patch8:  0008-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
-Patch9:  0009-Expose-adapter.connected-property.-Contributes-to-JB.patch
-Patch10: 0010-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
-Patch11: 0011-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
-Patch12: 0012-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
+Patch1: 0001-Add-.pro-files.patch
+Patch2: 0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
+Patch3: 0003-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
+Patch4: 0004-Check-for-object-validity-in-macros.patch
+Patch5: 0005-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
+Patch6: 0006-Expose-adapter.connected-property.-Contributes-to-JB.patch
+Patch7: 0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
+Patch8: 0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
+Patch9: 0009-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
 
 %description
 This package contains the KF5BluezQt library.
