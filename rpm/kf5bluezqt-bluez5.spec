@@ -11,13 +11,15 @@ Conflicts:  kf5bluezqt-bluez4
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
+BuildRequires:  cmake
+BuildRequires:  extra-cmake-modules
 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 Requires: bluez5
 Requires: bluez5-obexd
 
-Patch1: 0001-Add-.pro-files.patch
+Patch1: 0001-Generate-pkgconfig-.pc-file.patch
 Patch2: 0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
 Patch3: 0003-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
 Patch4: 0004-Check-for-object-validity-in-macros.patch
@@ -54,11 +56,11 @@ This package contains the development header files for kf5bluezqt
 %autosetup -p1 -n %{name}-%{version}/upstream
 
 %build
-%qmake5 KF5BLUEZQT_BLUEZ_VERSION=5
+%cmake -DBUILD_TESTING=FALSE .
 %make_build
 
 %install
-%qmake5_install
+%make_install
 
 %post -p /sbin/ldconfig
 
@@ -68,6 +70,7 @@ This package contains the development header files for kf5bluezqt
 %defattr(-,root,root,-)
 %license COPYING.LIB
 %{_libdir}/libKF5BluezQt.so.*
+%exclude /lib/udev/rules.d/61-kde-bluetooth-rfkill.rules
 
 %files declarative
 %defattr(-,root,root,-)
@@ -77,5 +80,7 @@ This package contains the development header files for kf5bluezqt
 %defattr(-,root,root,-)
 %{_libdir}/libKF5BluezQt.so
 %{_libdir}/pkgconfig/KF5BluezQt.pc
-%{_includedir}/KF5/BluezQt/bluezqt/*.h
-
+%{_includedir}/KF5/bluezqt_version.h
+%{_includedir}/KF5/BluezQt
+%{_libdir}/cmake/KF5BluezQt
+%exclude %{_datadir}/qt5/mkspecs/modules/qt_BluezQt.pri

@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Pekka Vuorela <pekka.vuorela@jolla.com>
+Date: Tue, 8 Feb 2022 12:25:03 +0200
+Subject: [PATCH] Generate pkgconfig .pc file
+
+Done upstream on 5.88.0.
+---
+ CMakeLists.txt | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a24f693..aecf6bc 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,6 +18,7 @@ include(CMakePackageConfigHelpers)
+ include(KDEInstallDirs)
+ include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
+ include(KDECMakeSettings)
++include(ECMGeneratePkgConfigFile)
+ 
+ 
+ ecm_setup_version(PROJECT
+@@ -87,6 +88,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+     if(${INSTALL_UDEV_RULE})
+         install(FILES 61-kde-bluetooth-rfkill.rules DESTINATION ${UDEV_RULES_INSTALL_DIR})
+     endif()
++
++    ecm_generate_pkgconfig_file(BASE_NAME KF5BluezQt
++      INCLUDE_INSTALL_DIR ${KDE_INSTALL_INCLUDEDIR_KF5}/BluezQt/
++      DEPS "Qt5Core Qt5Network Qt5DBus"
++    INSTALL)
+ endif()
+ 
+ feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
+-- 
+2.34.1
+

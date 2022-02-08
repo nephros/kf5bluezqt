@@ -4,6 +4,7 @@ Date: Sat, 23 Jul 2016 13:23:39 +0930
 Subject: [PATCH] Add MediaTransport - org.bluez.MediaTransport1 wrapper
 
 ---
+ src/CMakeLists.txt                           |   6 +
  src/device.cpp                               |   5 +
  src/device.h                                 |   5 +
  src/device_p.cpp                             |  11 +
@@ -17,11 +18,10 @@ Subject: [PATCH] Add MediaTransport - org.bluez.MediaTransport1 wrapper
  src/mediatransportsocketinfo.h               | 105 +++++++++
  src/pendingcall.cpp                          |  18 ++
  src/pendingcall.h                            |   4 +-
- src/src.pro                                  |   9 +
  src/types.h                                  |   3 +
  src/utils.cpp                                |   7 +
  src/utils.h                                  |   1 +
- 17 files changed, 776 insertions(+), 1 deletion(-)
+ 17 files changed, 773 insertions(+), 1 deletion(-)
  create mode 100644 src/interfaces/org.bluez.MediaTransport1.xml
  create mode 100644 src/mediatransport.cpp
  create mode 100644 src/mediatransport.h
@@ -30,6 +30,37 @@ Subject: [PATCH] Add MediaTransport - org.bluez.MediaTransport1 wrapper
  create mode 100644 src/mediatransportsocketinfo.cpp
  create mode 100644 src/mediatransportsocketinfo.h
 
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 1c923e9..f394e53 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -10,6 +10,9 @@ set(bluezqt_SRCS
+     mediaplayer.cpp
+     mediaplayer_p.cpp
+     mediaplayertrack.cpp
++    mediatransport.cpp
++    mediatransport_p.cpp
++    mediatransportsocketinfo.cpp
+     devicesmodel.cpp
+     job.cpp
+     initmanagerjob.cpp
+@@ -47,6 +50,7 @@ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.b
+ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.ProfileManager1.xml bluezprofilemanager1)
+ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.Device1.xml bluezdevice1)
+ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.MediaPlayer1.xml bluezmediaplayer1)
++qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.MediaTransport1.xml bluezmediatransport1)
+ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.obex.AgentManager1.xml obexagentmanager1)
+ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.obex.Client1.xml obexclient1)
+ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.obex.Transfer1.xml obextransfer1)
+@@ -82,6 +86,8 @@ ecm_generate_headers(BluezQt_CamelCase_HEADERS
+         Input
+         MediaPlayer
+         MediaPlayerTrack
++        MediaTransport
++        MediaTransportSocketInfo
+         DevicesModel
+         Job
+         InitManagerJob
 diff --git a/src/device.cpp b/src/device.cpp
 index def29a5..92567ca 100644
 --- a/src/device.cpp
@@ -957,61 +988,6 @@ index a368d6d..82b824f 100644
      friend class ObexManager;
      friend class ObexTransfer;
      friend class ObexSession;
-diff --git a/src/src.pro b/src/src.pro
-index 91d6939..5d3eca8 100644
---- a/src/src.pro
-+++ b/src/src.pro
-@@ -23,6 +23,7 @@ system(qdbusxml2cpp -c BluezAgentManager -p bluezagentmanager1.h:bluezagentmanag
- system(qdbusxml2cpp -c BluezProfileManager -p bluezprofilemanager1.h:bluezprofilemanager1.cpp $$XML_DIR/org.bluez.ProfileManager1.xml)
- system(qdbusxml2cpp -c BluezDevice -p bluezdevice1.h:bluezdevice1.cpp $$XML_DIR/org.bluez.Device1.xml)
- system(qdbusxml2cpp -c BluezMediaPlayer -p bluezmediaplayer1.h:bluezmediaplayer1.cpp $$XML_DIR/org.bluez.MediaPlayer1.xml)
-+system(qdbusxml2cpp -c BluezMediaTransport -p bluezmediatransport1.h:bluezmediatransport1.cpp $$XML_DIR/org.bluez.MediaTransport1.xml)
- system(qdbusxml2cpp -c ObexAgentManager -p obexagentmanager1.h:obexagentmanager1.cpp $$XML_DIR/org.bluez.obex.AgentManager1.xml)
- system(qdbusxml2cpp -c ObexClient -p obexclient1.h:obexclient1.cpp $$XML_DIR/org.bluez.obex.Client1.xml)
- system(qdbusxml2cpp -c ObexTransfer -p obextransfer1.h:obextransfer1.cpp $$XML_DIR/org.bluez.obex.Transfer1.xml)
-@@ -38,6 +39,7 @@ DBUS_SOURCES += \
-     bluezprofilemanager1.cpp \
-     bluezdevice1.cpp \
-     bluezmediaplayer1.cpp \
-+    bluezmediatransport1.cpp \
-     obexagentmanager1.cpp \
-     obexclient1.cpp \
-     obextransfer1.cpp \
-@@ -53,6 +55,7 @@ DBUS_HEADERS += \
-     bluezprofilemanager1.h \
-     bluezdevice1.h \
-     bluezmediaplayer1.h \
-+    bluezmediatransport1.h \
-     obexagentmanager1.h \
-     obexclient1.h \
-     obextransfer1.h \
-@@ -72,6 +75,9 @@ SOURCES += \
-     mediaplayer.cpp \
-     mediaplayer_p.cpp \
-     mediaplayertrack.cpp \
-+    mediatransport.cpp \
-+    mediatransport_p.cpp \
-+    mediatransportsocketinfo.cpp \
-     devicesmodel.cpp \
-     job.cpp \
-     initmanagerjob.cpp \
-@@ -103,6 +109,8 @@ PUBLIC_HEADERS += \
-     input.h \
-     mediaplayer.h \
-     mediaplayertrack.h \
-+    mediatransport.h \
-+    mediatransportsocketinfo.h \
-     devicesmodel.h \
-     job.h \
-     initmanagerjob.h \
-@@ -131,6 +139,7 @@ HEADERS += \
-     job_p.h \
-     manager_p.h \
-     mediaplayer_p.h \
-+    mediatransport_p.h \
-     obexmanager_p.h \
-     obexsession_p.h \
-     obextransfer_p.h \
 diff --git a/src/types.h b/src/types.h
 index 8afcf67..b7e8b28 100644
 --- a/src/types.h
