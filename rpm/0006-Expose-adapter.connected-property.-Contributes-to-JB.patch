@@ -34,10 +34,10 @@ index cc38928..654b86d 100644
  {
      Q_FOREACH (DevicePtr device, d->m_devices) {
 diff --git a/src/adapter.h b/src/adapter.h
-index 2c09218..5023e15 100644
+index 1a00266..aa4c0f6 100644
 --- a/src/adapter.h
 +++ b/src/adapter.h
-@@ -59,6 +59,7 @@ class BLUEZQT_EXPORT Adapter : public QObject
+@@ -61,6 +61,7 @@ class BLUEZQT_EXPORT Adapter : public QObject
      Q_PROPERTY(QStringList uuids READ uuids NOTIFY uuidsChanged)
      Q_PROPERTY(QString modalias READ modalias NOTIFY modaliasChanged)
      Q_PROPERTY(QList<DevicePtr> devices READ devices)
@@ -45,7 +45,7 @@ index 2c09218..5023e15 100644
  
  public:
      /**
-@@ -235,6 +236,13 @@ public:
+@@ -237,6 +238,13 @@ public:
       */
      QList<DevicePtr> devices() const;
  
@@ -59,7 +59,7 @@ index 2c09218..5023e15 100644
      /**
       * Returns a device for specified address.
       *
-@@ -355,6 +363,11 @@ Q_SIGNALS:
+@@ -357,6 +365,11 @@ Q_SIGNALS:
       */
      void deviceChanged(DevicePtr device);
  
@@ -72,7 +72,7 @@ index 2c09218..5023e15 100644
      explicit Adapter(const QString &path, const QVariantMap &properties);
  
 diff --git a/src/adapter_p.cpp b/src/adapter_p.cpp
-index 786fa7d..5c84c9c 100644
+index eb5fa9f..1ab0e11 100644
 --- a/src/adapter_p.cpp
 +++ b/src/adapter_p.cpp
 @@ -37,6 +37,7 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
@@ -83,7 +83,7 @@ index 786fa7d..5c84c9c 100644
  {
      m_bluezAdapter = new BluezAdapter(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
  
-@@ -76,6 +77,8 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
+@@ -68,6 +69,8 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
      m_devices.append(device);
      Q_EMIT q.data()->deviceAdded(device);
  
@@ -92,7 +92,7 @@ index 786fa7d..5c84c9c 100644
      connect(device.data(), &Device::deviceChanged, q.data(), &Adapter::deviceChanged);
  }
  
-@@ -85,6 +88,8 @@ void AdapterPrivate::removeDevice(const DevicePtr &device)
+@@ -77,6 +80,8 @@ void AdapterPrivate::removeDevice(const DevicePtr &device)
      Q_EMIT device->deviceRemoved(device);
      Q_EMIT q.data()->deviceRemoved(device);
  
@@ -101,7 +101,7 @@ index 786fa7d..5c84c9c 100644
      disconnect(device.data(), &Device::deviceChanged, q.data(), &Adapter::deviceChanged);
  }
  
-@@ -138,4 +143,20 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
+@@ -130,4 +135,20 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
      Q_EMIT q.data()->adapterChanged(q.toStrongRef());
  }
  

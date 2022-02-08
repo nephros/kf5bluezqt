@@ -31,10 +31,10 @@ Subject: [PATCH] Add MediaTransport - org.bluez.MediaTransport1 wrapper
  create mode 100644 src/mediatransportsocketinfo.h
 
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 1c923e9..f394e53 100644
+index 88ecf38..0669029 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -10,6 +10,9 @@ set(bluezqt_SRCS
+@@ -9,6 +9,9 @@ set(bluezqt_SRCS
      mediaplayer.cpp
      mediaplayer_p.cpp
      mediaplayertrack.cpp
@@ -44,7 +44,7 @@ index 1c923e9..f394e53 100644
      devicesmodel.cpp
      job.cpp
      initmanagerjob.cpp
-@@ -47,6 +50,7 @@ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.b
+@@ -48,6 +51,7 @@ qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.b
  qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.ProfileManager1.xml bluezprofilemanager1)
  qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.Device1.xml bluezdevice1)
  qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.MediaPlayer1.xml bluezmediaplayer1)
@@ -52,7 +52,7 @@ index 1c923e9..f394e53 100644
  qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.obex.AgentManager1.xml obexagentmanager1)
  qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.obex.Client1.xml obexclient1)
  qt5_add_dbus_interface(bluezqt_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/org.bluez.obex.Transfer1.xml obextransfer1)
-@@ -82,6 +86,8 @@ ecm_generate_headers(BluezQt_CamelCase_HEADERS
+@@ -83,6 +87,8 @@ ecm_generate_headers(BluezQt_CamelCase_HEADERS
          Input
          MediaPlayer
          MediaPlayerTrack
@@ -78,10 +78,10 @@ index def29a5..92567ca 100644
  {
      return d->m_adapter;
 diff --git a/src/device.h b/src/device.h
-index 3fa306d..42d5159 100644
+index 357ff33..bae7039 100644
 --- a/src/device.h
 +++ b/src/device.h
-@@ -62,6 +62,7 @@ class BLUEZQT_EXPORT Device : public QObject
+@@ -64,6 +64,7 @@ class BLUEZQT_EXPORT Device : public QObject
      Q_PROPERTY(QString modalias READ modalias NOTIFY modaliasChanged)
      Q_PROPERTY(InputPtr input READ input NOTIFY inputChanged)
      Q_PROPERTY(MediaPlayerPtr mediaPlayer READ mediaPlayer NOTIFY mediaPlayerChanged)
@@ -89,7 +89,7 @@ index 3fa306d..42d5159 100644
      Q_PROPERTY(AdapterPtr adapter READ adapter)
  
  public:
-@@ -313,6 +314,8 @@ public:
+@@ -315,6 +316,8 @@ public:
       */
      MediaPlayerPtr mediaPlayer() const;
  
@@ -98,7 +98,7 @@ index 3fa306d..42d5159 100644
      /**
       * Returns an adapter that discovered this device.
       *
-@@ -501,6 +504,8 @@ Q_SIGNALS:
+@@ -508,6 +511,8 @@ Q_SIGNALS:
       */
      void mediaPlayerChanged(MediaPlayerPtr mediaPlayer);
  
@@ -108,7 +108,7 @@ index 3fa306d..42d5159 100644
      explicit Device(const QString &path, const QVariantMap &properties, AdapterPtr adapter);
  
 diff --git a/src/device_p.cpp b/src/device_p.cpp
-index 79cbb86..9ba34c4 100644
+index 77158a0..54edc42 100644
 --- a/src/device_p.cpp
 +++ b/src/device_p.cpp
 @@ -27,6 +27,8 @@
@@ -120,7 +120,7 @@ index 79cbb86..9ba34c4 100644
  #include "utils.h"
  #include "macros.h"
  
-@@ -99,6 +101,11 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
+@@ -95,6 +97,11 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
              m_mediaPlayer->d->q = m_mediaPlayer.toWeakRef();
              Q_EMIT q.data()->mediaPlayerChanged(m_mediaPlayer);
              changed = true;
@@ -132,7 +132,7 @@ index 79cbb86..9ba34c4 100644
          }
      }
  
-@@ -121,6 +128,10 @@ void DevicePrivate::interfacesRemoved(const QString &path, const QStringList &in
+@@ -117,6 +124,10 @@ void DevicePrivate::interfacesRemoved(const QString &path, const QStringList &in
              m_mediaPlayer.clear();
              Q_EMIT q.data()->mediaPlayerChanged(m_mediaPlayer);
              changed = true;
@@ -144,10 +144,10 @@ index 79cbb86..9ba34c4 100644
      }
  
 diff --git a/src/device_p.h b/src/device_p.h
-index f2a7bd2..1590181 100644
+index c6eb3b6..684c96f 100644
 --- a/src/device_p.h
 +++ b/src/device_p.h
-@@ -75,6 +75,7 @@ public:
+@@ -76,6 +76,7 @@ public:
      QString m_modalias;
      InputPtr m_input;
      MediaPlayerPtr m_mediaPlayer;
@@ -967,10 +967,10 @@ index 4f950f1..8b19c4e 100644
  {
      if (error.isValid()) {
 diff --git a/src/pendingcall.h b/src/pendingcall.h
-index a368d6d..82b824f 100644
+index 2f42160..dbc53f2 100644
 --- a/src/pendingcall.h
 +++ b/src/pendingcall.h
-@@ -178,7 +178,8 @@ private:
+@@ -180,7 +180,8 @@ private:
          ReturnString,
          ReturnObjectPath,
          ReturnFileTransferList,
@@ -980,7 +980,7 @@ index a368d6d..82b824f 100644
      };
  
      explicit PendingCall(const QDBusPendingCall &call, ReturnType type, QObject *parent = nullptr);
-@@ -191,6 +192,7 @@ private:
+@@ -193,6 +194,7 @@ private:
      friend class Adapter;
      friend class Device;
      friend class MediaPlayer;
@@ -1010,10 +1010,10 @@ index 8afcf67..b7e8b28 100644
  typedef QSharedPointer<BluezQt::ObexSession> ObexSessionPtr;
  typedef QSharedPointer<BluezQt::ObexTransfer> ObexTransferPtr;
 diff --git a/src/utils.cpp b/src/utils.cpp
-index aed8250..5fd9a1b 100644
+index 9ca3d6d..0bf20fa 100644
 --- a/src/utils.cpp
 +++ b/src/utils.cpp
-@@ -44,6 +44,7 @@ public:
+@@ -45,6 +45,7 @@ public:
      QString orgBluezDevice1;
      QString orgBluezInput1;
      QString orgBluezMediaPlayer1;
@@ -1021,7 +1021,7 @@ index aed8250..5fd9a1b 100644
      QString orgBluezAgentManager1;
      QString orgBluezProfileManager1;
      QString orgBluezObex;
-@@ -64,6 +65,7 @@ GlobalData::GlobalData()
+@@ -66,6 +67,7 @@ GlobalData::GlobalData()
      orgBluezDevice1 = QStringLiteral("org.bluez.Device1");
      orgBluezInput1 = QStringLiteral("org.bluez.Input1");
      orgBluezMediaPlayer1 = QStringLiteral("org.bluez.MediaPlayer1");
@@ -1029,7 +1029,7 @@ index aed8250..5fd9a1b 100644
      orgBluezAgentManager1 = QStringLiteral("org.bluez.AgentManager1");
      orgBluezProfileManager1 = QStringLiteral("org.bluez.ProfileManager1");
      orgBluezObex = QStringLiteral("org.bluez.obex");
-@@ -113,6 +115,11 @@ QString Strings::orgBluezMediaPlayer1()
+@@ -120,6 +122,11 @@ QString Strings::orgBluezMediaPlayer1()
      return globalData->orgBluezMediaPlayer1;
  }
  
@@ -1042,10 +1042,10 @@ index aed8250..5fd9a1b 100644
  {
      return globalData->orgBluezAgentManager1;
 diff --git a/src/utils.h b/src/utils.h
-index fd49d8e..9e5e7dd 100644
+index 08cb6b9..6177a53 100644
 --- a/src/utils.h
 +++ b/src/utils.h
-@@ -41,6 +41,7 @@ QString orgBluezAdapter1();
+@@ -42,6 +42,7 @@ QString orgBluezAdapter1();
  QString orgBluezDevice1();
  QString orgBluezInput1();
  QString orgBluezMediaPlayer1();

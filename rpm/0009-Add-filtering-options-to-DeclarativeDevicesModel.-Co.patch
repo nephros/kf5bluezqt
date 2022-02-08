@@ -10,7 +10,7 @@ Subject: [PATCH] Add filtering options to DeclarativeDevicesModel. Contributes
  2 files changed, 78 insertions(+)
 
 diff --git a/src/imports/declarativedevicesmodel.cpp b/src/imports/declarativedevicesmodel.cpp
-index 58af155..a7a2732 100644
+index eff2e2e..dfcd5f8 100644
 --- a/src/imports/declarativedevicesmodel.cpp
 +++ b/src/imports/declarativedevicesmodel.cpp
 @@ -30,6 +30,7 @@ DeclarativeDevicesModel::DeclarativeDevicesModel(QObject *parent)
@@ -60,7 +60,7 @@ index 58af155..a7a2732 100644
  QHash<int, QByteArray> DeclarativeDevicesModel::roleNames() const
  {
      QHash<int, QByteArray> roles = QSortFilterProxyModel::roleNames();
-@@ -81,3 +114,22 @@ QVariant DeclarativeDevicesModel::data(const QModelIndex &index, int role) const
+@@ -82,3 +115,22 @@ QVariant DeclarativeDevicesModel::data(const QModelIndex &index, int role) const
          return QSortFilterProxyModel::data(index, role);
      }
  }
@@ -84,7 +84,7 @@ index 58af155..a7a2732 100644
 +    return !m_hiddenAddresses.contains(dev->address());
 +}
 diff --git a/src/imports/declarativedevicesmodel.h b/src/imports/declarativedevicesmodel.h
-index 6050329..ff991c9 100644
+index 8d034b4..5f0199d 100644
 --- a/src/imports/declarativedevicesmodel.h
 +++ b/src/imports/declarativedevicesmodel.h
 @@ -33,6 +33,8 @@ class DeclarativeDevicesModel : public QSortFilterProxyModel
@@ -120,9 +120,9 @@ index 6050329..ff991c9 100644
 +    QStringList hiddenAddresses() const;
 +    void setHiddenAddresses(const QStringList &addresses);
 +
-     QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
-     QVariant data(const QModelIndex &index, int role) const Q_DECL_OVERRIDE;
-+    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
+     QHash<int, QByteArray> roleNames() const override;
+     QVariant data(const QModelIndex &index, int role) const override;
++    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
 +
 +Q_SIGNALS:
 +    void filtersChanged(DeclarativeDevicesModel::DeclarativeFilters filters);

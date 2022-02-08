@@ -28,10 +28,10 @@ index 4bd0068..38146c2 100644
 +
  } // namespace BluezQt
 diff --git a/src/manager.h b/src/manager.h
-index 3165509..1700dd8 100644
+index b33719a..6860882 100644
 --- a/src/manager.h
 +++ b/src/manager.h
-@@ -295,6 +295,16 @@ public:
+@@ -297,6 +297,16 @@ public:
       */
      PendingCall *unregisterProfile(Profile *profile);
  

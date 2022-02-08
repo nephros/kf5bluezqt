@@ -37,10 +37,10 @@ index 38146c2..75b36cc 100644
  {
      return d->m_usableAdapter;
 diff --git a/src/manager.h b/src/manager.h
-index 1700dd8..9823ddb 100644
+index 6860882..d17615a 100644
 --- a/src/manager.h
 +++ b/src/manager.h
-@@ -94,6 +94,7 @@ class BLUEZQT_EXPORT Manager : public QObject
+@@ -96,6 +96,7 @@ class BLUEZQT_EXPORT Manager : public QObject
      Q_PROPERTY(bool operational READ isOperational NOTIFY operationalChanged)
      Q_PROPERTY(bool bluetoothOperational READ isBluetoothOperational NOTIFY bluetoothOperationalChanged)
      Q_PROPERTY(bool bluetoothBlocked READ isBluetoothBlocked WRITE setBluetoothBlocked NOTIFY bluetoothBlockedChanged)
@@ -48,7 +48,7 @@ index 1700dd8..9823ddb 100644
      Q_PROPERTY(AdapterPtr usableAdapter READ usableAdapter NOTIFY usableAdapterChanged)
      Q_PROPERTY(QList<AdapterPtr> adapters READ adapters)
      Q_PROPERTY(QList<DevicePtr> devices READ devices)
-@@ -170,6 +171,27 @@ public:
+@@ -172,6 +173,27 @@ public:
       */
      bool setBluetoothBlocked(bool blocked);
  
@@ -76,7 +76,7 @@ index 1700dd8..9823ddb 100644
      /**
       * Returns a usable adapter.
       *
-@@ -321,6 +343,11 @@ Q_SIGNALS:
+@@ -323,6 +345,11 @@ Q_SIGNALS:
       */
      void bluetoothBlockedChanged(bool blocked);
  
@@ -89,10 +89,10 @@ index 1700dd8..9823ddb 100644
       * Indicates that adapter was added.
       */
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index bfdf4e1..bf7c70a 100644
+index 9a0e08a..c0bc497 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
-@@ -47,6 +47,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
+@@ -46,6 +46,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
      , m_bluezRunning(false)
      , m_loaded(false)
      , m_adaptersLoaded(false)
@@ -100,7 +100,7 @@ index bfdf4e1..bf7c70a 100644
  {
      qDBusRegisterMetaType<DBusManagerStruct>();
      qDBusRegisterMetaType<QVariantMapMap>();
-@@ -162,18 +163,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+@@ -168,18 +169,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
          return;
      }
  
@@ -121,7 +121,7 @@ index bfdf4e1..bf7c70a 100644
      Q_EMIT q->operationalChanged(true);
  
      if (q->isBluetoothOperational()) {
-@@ -183,6 +177,40 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+@@ -189,6 +183,40 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
      Q_EMIT initFinished();
  }
  
@@ -163,10 +163,10 @@ index bfdf4e1..bf7c70a 100644
  {
      m_loaded = false;
 diff --git a/src/manager_p.h b/src/manager_p.h
-index 4cfad85..ce15bf4 100644
+index d7e96b6..cf03612 100644
 --- a/src/manager_p.h
 +++ b/src/manager_p.h
-@@ -75,6 +75,8 @@ public:
+@@ -76,6 +76,8 @@ public:
      bool rfkillBlocked() const;
      void setUsableAdapter(const AdapterPtr &adapter);
  
@@ -175,7 +175,7 @@ index 4cfad85..ce15bf4 100644
      Manager *q;
      Rfkill *m_rfkill;
      DBusObjectManager *m_dbusObjectManager;
-@@ -89,6 +91,7 @@ public:
+@@ -90,6 +92,7 @@ public:
      bool m_bluezRunning;
      bool m_loaded;
      bool m_adaptersLoaded;

@@ -1,6 +1,6 @@
 Name:       kf5bluezqt-bluez5
 Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API
-Version:    5.34.0
+Version:    5.50.0
 Release:    1
 License:    LGPLv2
 URL:        https://github.com/sailfishos/kf5bluezqt
@@ -19,15 +19,16 @@ Requires(postun): /sbin/ldconfig
 Requires: bluez5
 Requires: bluez5-obexd
 
-Patch1: 0001-Generate-pkgconfig-.pc-file.patch
-Patch2: 0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
-Patch3: 0003-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
-Patch4: 0004-Check-for-object-validity-in-macros.patch
-Patch5: 0005-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
-Patch6: 0006-Expose-adapter.connected-property.-Contributes-to-JB.patch
-Patch7: 0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
-Patch8: 0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
-Patch9: 0009-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
+Patch1:  0001-Generate-pkgconfig-.pc-file.patch
+Patch2:  0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
+Patch3:  0003-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
+Patch4:  0004-Check-for-object-validity-in-macros.patch
+Patch5:  0005-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
+Patch6:  0006-Expose-adapter.connected-property.-Contributes-to-JB.patch
+Patch7:  0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
+Patch8:  0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
+Patch9:  0009-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
+Patch10: 0010-Build-with-Qt-5.6.patch
 
 %description
 This package contains the KF5BluezQt library.
@@ -71,6 +72,7 @@ This package contains the development header files for kf5bluezqt
 %license COPYING.LIB
 %{_libdir}/libKF5BluezQt.so.*
 %exclude /lib/udev/rules.d/61-kde-bluetooth-rfkill.rules
+%exclude %{_sysconfdir}/xdg/bluez.categories
 
 %files declarative
 %defattr(-,root,root,-)
