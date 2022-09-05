@@ -13,6 +13,7 @@ BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  cmake
 BuildRequires:  extra-cmake-modules
+BuildRequires:  doxygen
 
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
@@ -53,6 +54,13 @@ Requires:   %{name} = %{version}
 %description devel
 This package contains the development header files for kf5bluezqt
 
+%package doc
+Summary:    API documentation for %{name}
+BuildArch:  noarch
+
+%description doc
+%{summary}.
+
 %prep
 %autosetup -p1 -n %{name}-%{version}/upstream
 
@@ -62,6 +70,12 @@ This package contains the development header files for kf5bluezqt
 
 %install
 %make_install
+
+doxygen ../doc/Doxyfile
+mkdir -p %{buildroot}/%{_docdir}/%{name}
+mkdir -p %{buildroot}/%{_docdir}/%{name}/search
+rm doc/html/installdox
+cp -r doc/html/* %{buildroot}/%{_docdir}/%{name}/
 
 %post -p /sbin/ldconfig
 
@@ -86,3 +100,7 @@ This package contains the development header files for kf5bluezqt
 %{_includedir}/KF5/BluezQt
 %{_libdir}/cmake/KF5BluezQt
 %exclude %{_datadir}/qt5/mkspecs/modules/qt_BluezQt.pri
+
+%files doc
+%defattr(-,root,root,-)
+%{_docdir}/kf5bluezqt-bluez5/*
