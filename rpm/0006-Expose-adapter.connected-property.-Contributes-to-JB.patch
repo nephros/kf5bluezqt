@@ -197,6 +197,3 @@ index 315e4bd..13f1456 100644
  
  private Q_SLOTS:
      void slotDeviceAdded(BluezQt::DevicePtr device);
--- 
-2.34.1
-

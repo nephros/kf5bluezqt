@@ -1053,6 +1053,3 @@ index 08cb6b9..6177a53 100644
  QString orgBluezAgentManager1();
  QString orgBluezProfileManager1();
  QString orgBluezObex();
--- 
-2.34.1
-

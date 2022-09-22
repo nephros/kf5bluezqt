@@ -29,6 +29,7 @@ Patch7:  0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
 Patch8:  0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
 Patch9:  0009-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
 Patch10: 0010-Build-with-Qt-5.6.patch
+Patch11: 0011-Add-support-for-KeyboardDisplay-type-agents.patch
 
 %description
 This package contains the KF5BluezQt library.

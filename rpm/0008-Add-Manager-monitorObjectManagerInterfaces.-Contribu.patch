@@ -183,6 +183,3 @@ index d7e96b6..cf03612 100644
      bool m_bluetoothBlocked;
  
  Q_SIGNALS:
--- 
-2.34.1
-
