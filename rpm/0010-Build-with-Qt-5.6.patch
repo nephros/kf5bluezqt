@@ -33,6 +33,3 @@ index dfcd5f8..a7a2732 100644
      default:
          return QSortFilterProxyModel::data(index, role);
      }
--- 
-2.34.1
-

@@ -32,6 +32,3 @@ index 913284e..ed9028e 100644
  endif()
  
  install(FILES bluez.categories DESTINATION ${KDE_INSTALL_CONFDIR})
--- 
-2.34.1
-

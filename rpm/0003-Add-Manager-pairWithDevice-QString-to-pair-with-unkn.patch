@@ -48,6 +48,3 @@ index b33719a..6860882 100644
  Q_SIGNALS:
      /**
       * Indicates that operational state have changed.
--- 
-2.34.1
-
