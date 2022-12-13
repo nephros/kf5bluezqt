@@ -75,7 +75,6 @@ BuildArch:  noarch
 doxygen ../doc/Doxyfile
 mkdir -p %{buildroot}/%{_docdir}/%{name}
 mkdir -p %{buildroot}/%{_docdir}/%{name}/search
-rm doc/html/installdox
 cp -r doc/html/* %{buildroot}/%{_docdir}/%{name}/
 
 %post -p /sbin/ldconfig
