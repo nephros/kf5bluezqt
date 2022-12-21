@@ -21,7 +21,7 @@ Requires: bluez5
 Requires: bluez5-obexd
 
 Patch1:  0001-Generate-pkgconfig-.pc-file.patch
-Patch2:  0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
+#Patch2:  0002-Add-MediaTransport-org.bluez.MediaTransport1-wrapper.patch
 Patch3:  0003-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
 Patch4:  0004-Check-for-object-validity-in-macros.patch
 Patch5:  0005-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
