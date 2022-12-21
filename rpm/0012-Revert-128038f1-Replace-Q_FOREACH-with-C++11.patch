@@ -1,0 +1,571 @@
+diff --git a/autotests/adaptertest.cpp b/autotests/adaptertest.cpp
+index 447f492..ff066ef 100644
+--- a/autotests/adaptertest.cpp
++++ b/autotests/adaptertest.cpp
+@@ -103,7 +103,7 @@ void AdapterTest::initTestCase()
+     initJob->exec();
+     QVERIFY(!initJob->error());
+ 
+-    for (AdapterPtr adapter : m_manager->adapters()) {
++    Q_FOREACH (AdapterPtr adapter, m_manager->adapters()) {
+         QVERIFY(!adapter->ubi().isEmpty());
+ 
+         AdapterUnit u;
+@@ -124,7 +124,7 @@ void AdapterTest::initTestCase()
+ 
+ void AdapterTest::cleanupTestCase()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         delete unit.dbusAdapter;
+         delete unit.dbusProperties;
+     }
+@@ -145,7 +145,7 @@ static void compareUuids(const QStringList &actual, const QStringList &expected)
+ 
+ void AdapterTest::getPropertiesTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QCOMPARE(unit.adapter->ubi(), unit.dbusAdapter->path());
+         QCOMPARE(unit.adapter->address(), unit.dbusAdapter->address());
+         QCOMPARE(unit.adapter->name(), unit.dbusAdapter->alias());
+@@ -165,7 +165,7 @@ void AdapterTest::getPropertiesTest()
+ 
+ void AdapterTest::setAliasTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(nameChanged(QString)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -185,7 +185,7 @@ void AdapterTest::setAliasTest()
+ 
+ void AdapterTest::setPoweredTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(poweredChanged(bool)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -209,7 +209,7 @@ void AdapterTest::setDiscoverableTest()
+ {
+     // Discoverable cannot be changed when Adapter is off
+ 
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         unit.adapter->setPowered(true)->waitForFinished();
+ 
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(discoverableChanged(bool)));
+@@ -231,7 +231,7 @@ void AdapterTest::setDiscoverableTest()
+ 
+ void AdapterTest::setDiscoverableTimeoutTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(discoverableTimeoutChanged(quint32)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -253,7 +253,7 @@ void AdapterTest::setDiscoverableTimeoutTest()
+ 
+ void AdapterTest::setPairableTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(pairableChanged(bool)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -273,7 +273,7 @@ void AdapterTest::setPairableTest()
+ 
+ void AdapterTest::setPairableTimeoutTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(pairableTimeoutChanged(quint32)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -297,7 +297,7 @@ void AdapterTest::discoveryTest()
+ {
+     // Discovery needs Adapter powered on
+ 
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         // Make sure the Adapter is powered on and not discovering
+         unit.adapter->setPowered(true)->waitForFinished();
+         if (unit.adapter->isDiscovering()) {
+@@ -340,7 +340,7 @@ void AdapterTest::discoveryTest()
+ 
+ void AdapterTest::removeDeviceTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         while (!unit.adapter->devices().isEmpty()) {
+             DevicePtr device = unit.adapter->devices().first();
+ 
+@@ -363,7 +363,7 @@ void AdapterTest::removeDeviceTest()
+ 
+ void AdapterTest::adapterRemovedTest()
+ {
+-    for (const AdapterUnit &unit : m_units) {
++    Q_FOREACH (const AdapterUnit &unit, m_units) {
+         QSignalSpy managerSpy(m_manager, SIGNAL(adapterRemoved(AdapterPtr)));
+         QSignalSpy adapterSpy(unit.adapter.data(), SIGNAL(adapterRemoved(AdapterPtr)));
+ 
+diff --git a/autotests/devicetest.cpp b/autotests/devicetest.cpp
+index 59e43e0..b1767fc 100644
+--- a/autotests/devicetest.cpp
++++ b/autotests/devicetest.cpp
+@@ -106,10 +106,10 @@ void DeviceTest::initTestCase()
+     initJob->exec();
+     QVERIFY(!initJob->error());
+ 
+-    for (const AdapterPtr &adapter : m_manager->adapters()) {
++    Q_FOREACH (const AdapterPtr &adapter, m_manager->adapters()) {
+         QVERIFY(!adapter->ubi().isEmpty());
+ 
+-        for (const DevicePtr &device : adapter->devices()) {
++        Q_FOREACH (const DevicePtr &device, adapter->devices()) {
+             QVERIFY(!device->ubi().isEmpty());
+ 
+             DeviceUnit u;
+@@ -132,7 +132,7 @@ void DeviceTest::initTestCase()
+ 
+ void DeviceTest::cleanupTestCase()
+ {
+-    for (const DeviceUnit &unit : m_units) {
++    Q_FOREACH (const DeviceUnit &unit, m_units) {
+         delete unit.dbusDevice;
+         delete unit.dbusProperties;
+     }
+@@ -153,7 +153,7 @@ static void compareUuids(const QStringList &actual, const QStringList &expected)
+ 
+ void DeviceTest::getPropertiesTest()
+ {
+-    for (const DeviceUnit &unit : m_units) {
++    Q_FOREACH (const DeviceUnit &unit, m_units) {
+         QCOMPARE(unit.device->ubi(), unit.dbusDevice->path());
+         QCOMPARE(unit.device->address(), unit.dbusDevice->address());
+         QCOMPARE(unit.device->name(), unit.dbusDevice->alias());
+@@ -176,7 +176,7 @@ void DeviceTest::getPropertiesTest()
+ 
+ void DeviceTest::setAliasTest()
+ {
+-    for (const DeviceUnit &unit : m_units) {
++    Q_FOREACH (const DeviceUnit &unit, m_units) {
+         QSignalSpy deviceSpy(unit.device.data(), SIGNAL(nameChanged(QString)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -196,7 +196,7 @@ void DeviceTest::setAliasTest()
+ 
+ void DeviceTest::setTrustedTest()
+ {
+-    for (const DeviceUnit &unit : m_units) {
++    Q_FOREACH (const DeviceUnit &unit, m_units) {
+         QSignalSpy deviceSpy(unit.device.data(), SIGNAL(trustedChanged(bool)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -216,7 +216,7 @@ void DeviceTest::setTrustedTest()
+ 
+ void DeviceTest::setBlockedTest()
+ {
+-    for (const DeviceUnit &unit : m_units) {
++    Q_FOREACH (const DeviceUnit &unit, m_units) {
+         QSignalSpy deviceSpy(unit.device.data(), SIGNAL(blockedChanged(bool)));
+         QSignalSpy dbusSpy(unit.dbusProperties, SIGNAL(PropertiesChanged(QString,QVariantMap,QStringList)));
+ 
+@@ -236,7 +236,7 @@ void DeviceTest::setBlockedTest()
+ 
+ void DeviceTest::deviceRemovedTest()
+ {
+-    for (const DeviceUnit &unit : m_units) {
++    Q_FOREACH (const DeviceUnit &unit, m_units) {
+         QSignalSpy managerSpy(m_manager, SIGNAL(deviceRemoved(DevicePtr)));
+         QSignalSpy adapterSpy(unit.device->adapter().data(), SIGNAL(deviceRemoved(DevicePtr)));
+         QSignalSpy deviceSpy(unit.device.data(), SIGNAL(deviceRemoved(DevicePtr)));
+diff --git a/autotests/fakebluez/objectmanager.cpp b/autotests/fakebluez/objectmanager.cpp
+index 15938ff..6621e7b 100644
+--- a/autotests/fakebluez/objectmanager.cpp
++++ b/autotests/fakebluez/objectmanager.cpp
+@@ -81,7 +81,7 @@ DBusManagerStruct ObjectManager::GetManagedObjects()
+ {
+     DBusManagerStruct objects;
+ 
+-    for (Object *object : m_objects.values()) {
++    Q_FOREACH (Object *object, m_objects.values()) {
+         if (objects.value(object->path()).isEmpty()) {
+             objects[object->path()].insert(QStringLiteral("org.freedesktop.DBus.Introspectable"), QVariantMap());
+             if (object->haveProperties()) {
+diff --git a/autotests/inputtest.cpp b/autotests/inputtest.cpp
+index c770398..ba0918b 100644
+--- a/autotests/inputtest.cpp
++++ b/autotests/inputtest.cpp
+@@ -110,7 +110,7 @@ void InputTest::initTestCase()
+     initJob->exec();
+     QVERIFY(!initJob->error());
+ 
+-    for (DevicePtr device : m_manager->devices()) {
++    Q_FOREACH (DevicePtr device, m_manager->devices()) {
+         QVERIFY(device->input());
+ 
+         InputUnit u;
+@@ -128,7 +128,7 @@ void InputTest::initTestCase()
+ 
+ void InputTest::cleanupTestCase()
+ {
+-    for (const InputUnit &unit : m_units) {
++    Q_FOREACH (const InputUnit &unit, m_units) {
+         delete unit.dbusInput;
+     }
+ 
+@@ -139,7 +139,7 @@ void InputTest::cleanupTestCase()
+ 
+ void InputTest::getPropertiesTest()
+ {
+-    for (const InputUnit &unit : m_units) {
++    Q_FOREACH (const InputUnit &unit, m_units) {
+         QCOMPARE(reconnectModeString(unit.device->input()), unit.dbusInput->reconnectMode());
+     }
+ }
+diff --git a/autotests/mediaplayertest.cpp b/autotests/mediaplayertest.cpp
+index e5a31f3..35bf633 100644
+--- a/autotests/mediaplayertest.cpp
++++ b/autotests/mediaplayertest.cpp
+@@ -132,7 +132,7 @@ void MediaPlayerTest::initTestCase()
+ 
+ void MediaPlayerTest::cleanupTestCase()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         delete unit.dbusMediaPlayer;
+         delete unit.dbusProperties;
+     }
+@@ -144,7 +144,7 @@ void MediaPlayerTest::cleanupTestCase()
+ 
+ void MediaPlayerTest::connectTest()
+ {
+-    for (DevicePtr device : m_manager->devices()) {
++    Q_FOREACH (DevicePtr device, m_manager->devices()) {
+         QVERIFY(!device->ubi().isEmpty());
+         QVERIFY(!device->mediaPlayer());
+ 
+@@ -158,7 +158,7 @@ void MediaPlayerTest::connectTest()
+ 
+ void MediaPlayerTest::disconnectTest()
+ {
+-    for (DevicePtr device : m_manager->devices()) {
++    Q_FOREACH (DevicePtr device, m_manager->devices()) {
+         QVERIFY(device->mediaPlayer());
+ 
+         QSignalSpy deviceSpy(device.data(), SIGNAL(mediaPlayerChanged(MediaPlayerPtr)));
+@@ -174,7 +174,7 @@ void MediaPlayerTest::connectProfileTest()
+     QDBusConnection connection = QDBusConnection::sessionBus();
+     QString service = QStringLiteral("org.kde.bluezqt.fakebluez");
+ 
+-    for (DevicePtr device : m_manager->devices()) {
++    Q_FOREACH (DevicePtr device, m_manager->devices()) {
+         QVERIFY(!device->ubi().isEmpty());
+         QVERIFY(!device->mediaPlayer());
+ 
+@@ -196,7 +196,7 @@ void MediaPlayerTest::connectProfileTest()
+ 
+ void MediaPlayerTest::getPropertiesTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         QCOMPARE(unit.device->mediaPlayer()->name(), unit.dbusMediaPlayer->name());
+         QCOMPARE(equalizerString(unit.device->mediaPlayer()), unit.dbusMediaPlayer->equalizer());
+         QCOMPARE(repeatString(unit.device->mediaPlayer()), unit.dbusMediaPlayer->repeat());
+@@ -209,7 +209,7 @@ void MediaPlayerTest::getPropertiesTest()
+ 
+ void MediaPlayerTest::setEqualizerTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         MediaPlayerPtr mediaPlayer = unit.device->mediaPlayer();
+         MediaPlayer::Equalizer value = mediaPlayer->equalizer() == MediaPlayer::EqualizerOff ?
+                     MediaPlayer::EqualizerOn : MediaPlayer::EqualizerOff;
+@@ -225,7 +225,7 @@ void MediaPlayerTest::setEqualizerTest()
+ 
+ void MediaPlayerTest::setRepeatTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         MediaPlayerPtr mediaPlayer = unit.device->mediaPlayer();
+         MediaPlayer::Repeat value = mediaPlayer->repeat() == MediaPlayer::RepeatGroup ?
+                     MediaPlayer::RepeatSingleTrack : MediaPlayer::RepeatGroup;
+@@ -241,7 +241,7 @@ void MediaPlayerTest::setRepeatTest()
+ 
+ void MediaPlayerTest::setShuffleTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         MediaPlayerPtr mediaPlayer = unit.device->mediaPlayer();
+         MediaPlayer::Shuffle value = mediaPlayer->shuffle() == MediaPlayer::ShuffleAllTracks ?
+                     MediaPlayer::ShuffleOff : MediaPlayer::ShuffleAllTracks;
+@@ -257,7 +257,7 @@ void MediaPlayerTest::setShuffleTest()
+ 
+ void MediaPlayerTest::changeStatusTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         MediaPlayerPtr mediaPlayer = unit.device->mediaPlayer();
+ 
+         QSignalSpy statusSpy(mediaPlayer.data(), SIGNAL(statusChanged(Status)));
+@@ -303,7 +303,7 @@ void MediaPlayerTest::changeStatusTest()
+ 
+ void MediaPlayerTest::changeTrackTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         MediaPlayerPtr mediaPlayer = unit.device->mediaPlayer();
+ 
+         QSignalSpy trackSpy(mediaPlayer.data(), SIGNAL(trackChanged(MediaPlayerTrack)));
+@@ -322,7 +322,7 @@ void MediaPlayerTest::changeTrackTest()
+ 
+ void MediaPlayerTest::disconnectProfileTest()
+ {
+-    for (const MediaPlayerUnit &unit : m_units) {
++    Q_FOREACH (const MediaPlayerUnit &unit, m_units) {
+         QVERIFY(unit.device->mediaPlayer());
+ 
+         QSignalSpy deviceSpy(unit.device.data(), SIGNAL(mediaPlayerChanged(MediaPlayerPtr)));
+@@ -340,7 +340,7 @@ void MediaPlayerTest::bug403289()
+     QDBusConnection connection = QDBusConnection::sessionBus();
+     QString service = QStringLiteral("org.kde.bluezqt.fakebluez");
+ 
+-    for (DevicePtr device : m_manager->devices()) {
++    Q_FOREACH (DevicePtr device, m_manager->devices()) {
+         QVERIFY(!device->mediaPlayer());
+ 
+         QSignalSpy deviceSpy(device.data(), SIGNAL(mediaPlayerChanged(MediaPlayerPtr)));
+diff --git a/autotests/qmltests.cpp b/autotests/qmltests.cpp
+index 60efc7e..9b75d5f 100644
+--- a/autotests/qmltests.cpp
++++ b/autotests/qmltests.cpp
+@@ -54,7 +54,7 @@ public Q_SLOTS:
+     static void processProperties(QVariantMap &properties)
+     {
+         const QStringList &toDBusObjectPath = properties.value(QStringLiteral("_toDBusObjectPath")).toStringList();
+-        for (const QString &name : toDBusObjectPath) {
++        Q_FOREACH (const QString &name, toDBusObjectPath) {
+             const QString &val = properties.value(name).toString();
+             properties[name] = QVariant::fromValue(QDBusObjectPath(val));
+         }
+diff --git a/src/adapter.cpp b/src/adapter.cpp
+index 5fd70cc..d14f5d6 100644
+--- a/src/adapter.cpp
++++ b/src/adapter.cpp
+@@ -168,7 +168,7 @@ QList<DevicePtr> Adapter::devices() const
+ 
+ DevicePtr Adapter::deviceForAddress(const QString &address) const
+ {
+-    for (DevicePtr device : qAsConst(d->m_devices)) {
++    Q_FOREACH (DevicePtr device, d->m_devices) {
+         if (device->address() == address) {
+             return device;
+         }
+diff --git a/src/adapter_p.cpp b/src/adapter_p.cpp
+index 734c972..fa90dcb 100644
+--- a/src/adapter_p.cpp
++++ b/src/adapter_p.cpp
+@@ -172,7 +172,7 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
+         }
+     }
+ 
+-    for (const QString &property : invalidated) {
++    Q_FOREACH (const QString &property, invalidated) {
+         if (property == QLatin1String("Modalias")) {
+             PROPERTY_INVALIDATED(m_modalias, QString(), modaliasChanged);
+         }
+diff --git a/src/device_p.cpp b/src/device_p.cpp
+index 5a52fac..616619a 100644
+--- a/src/device_p.cpp
++++ b/src/device_p.cpp
+@@ -114,7 +114,7 @@ void DevicePrivate::interfacesRemoved(const QString &path, const QStringList &in
+ {
+     bool changed = false;
+ 
+-    for (const QString &interface : interfaces) {
++    Q_FOREACH (const QString &interface, interfaces) {
+         if (interface == Strings::orgBluezInput1() && m_input && m_input->d->m_path == path) {
+             m_input.clear();
+             Q_EMIT q.data()->inputChanged(m_input);
+@@ -186,7 +186,7 @@ void DevicePrivate::propertiesChanged(const QString &interface, const QVariantMa
+         }
+     }
+ 
+-    for (const QString &property : invalidated) {
++    Q_FOREACH (const QString &property, invalidated) {
+         if (property == QLatin1String("Name")) {
+             namePropertyChanged(QString());
+         } else if (property == QLatin1String("Class")) {
+diff --git a/src/devicesmodel.cpp b/src/devicesmodel.cpp
+index 451d729..fbf1bda 100644
+--- a/src/devicesmodel.cpp
++++ b/src/devicesmodel.cpp
+@@ -90,8 +90,7 @@ void DevicesModelPrivate::deviceChanged(DevicePtr device)
+ 
+ void DevicesModelPrivate::adapterChanged(AdapterPtr adapter)
+ {
+-    const auto devices = adapter->devices();
+-    for (const DevicePtr &device : devices) {
++    Q_FOREACH (const DevicePtr &device, adapter->devices()) {
+         deviceChanged(device);
+     }
+ }
+diff --git a/src/manager.cpp b/src/manager.cpp
+index e0849c9..8316da8 100644
+--- a/src/manager.cpp
++++ b/src/manager.cpp
+@@ -111,7 +111,7 @@ PendingCall *Manager::startService()
+ 
+ AdapterPtr Manager::adapterForAddress(const QString &address) const
+ {
+-    for (AdapterPtr adapter : qAsConst(d->m_adapters)) {
++    Q_FOREACH (AdapterPtr adapter, d->m_adapters) {
+         if (adapter->address() == address) {
+             return adapter;
+         }
+@@ -128,7 +128,7 @@ DevicePtr Manager::deviceForAddress(const QString &address) const
+ {
+     DevicePtr device;
+ 
+-    for (AdapterPtr adapter : qAsConst(d->m_adapters)) {
++    Q_FOREACH (AdapterPtr adapter, d->m_adapters) {
+         DevicePtr d = adapter->deviceForAddress(address);
+         if (!d) {
+             continue;
+diff --git a/src/manager_p.cpp b/src/manager_p.cpp
+index 29b39a1..354052c 100644
+--- a/src/manager_p.cpp
++++ b/src/manager_p.cpp
+@@ -223,7 +223,7 @@ void ManagerPrivate::clear()
+ 
+ AdapterPtr ManagerPrivate::findUsableAdapter() const
+ {
+-    for (AdapterPtr adapter : qAsConst(m_adapters)) {
++    Q_FOREACH (AdapterPtr adapter, m_adapters) {
+         if (adapter->isPowered()) {
+             return adapter;
+         }
+@@ -286,7 +286,7 @@ void ManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, const
+ {
+     const QString &path = objectPath.path();
+ 
+-    for (const QString &interface : interfaces) {
++    Q_FOREACH (const QString &interface, interfaces) {
+         if (interface == Strings::orgBluezAdapter1()) {
+             removeAdapter(path);
+         } else if (interface == Strings::orgBluezDevice1()) {
+@@ -394,8 +394,7 @@ void ManagerPrivate::removeAdapter(const QString &adapterPath)
+     }
+ 
+     // Make sure we always remove all devices before removing the adapter
+-    const auto devices = adapter->devices();
+-    for (const DevicePtr &device : devices) {
++    Q_FOREACH (const DevicePtr &device, adapter->devices()) {
+         removeDevice(device->ubi());
+     }
+ 
+diff --git a/src/mediaplayer_p.cpp b/src/mediaplayer_p.cpp
+index a57d4f3..64e129e 100644
+--- a/src/mediaplayer_p.cpp
++++ b/src/mediaplayer_p.cpp
+@@ -137,7 +137,7 @@ void MediaPlayerPrivate::propertiesChanged(const QString &interface, const QVari
+         }
+     }
+ 
+-    for (const QString &property : invalidated) {
++    Q_FOREACH (const QString &property, invalidated) {
+         if (property == QLatin1String("Name")) {
+             PROPERTY_INVALIDATED(m_name, QString(), nameChanged);
+         } else if (property == QLatin1String("Equalizer")) {
+diff --git a/src/obexmanager.cpp b/src/obexmanager.cpp
+index 36e86fa..3b1baab 100644
+--- a/src/obexmanager.cpp
++++ b/src/obexmanager.cpp
+@@ -69,7 +69,7 @@ QList<ObexSessionPtr> ObexManager::sessions() const
+ 
+ ObexSessionPtr ObexManager::sessionForPath(const QDBusObjectPath &path) const
+ {
+-    for (ObexSessionPtr session : qAsConst(d->m_sessions)) {
++    Q_FOREACH (ObexSessionPtr session, d->m_sessions) {
+         if (path.path().startsWith(session->objectPath().path())) {
+             return session;
+         }
+diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
+index e90c298..2535b62 100644
+--- a/src/obexmanager_p.cpp
++++ b/src/obexmanager_p.cpp
+@@ -231,7 +231,7 @@ void ObexManagerPrivate::interfacesRemoved(const QDBusObjectPath &objectPath, co
+ {
+     const QString &path = objectPath.path();
+ 
+-    for (const QString &interface : interfaces) {
++    Q_FOREACH (const QString &interface, interfaces) {
+         if (interface == Strings::orgBluezObexSession1()) {
+             removeSession(path);
+         }
+diff --git a/src/pendingcall.cpp b/src/pendingcall.cpp
+index a127a00..6aa20fb 100644
+--- a/src/pendingcall.cpp
++++ b/src/pendingcall.cpp
+@@ -177,8 +177,7 @@ void PendingCallPrivate::processFileTransferListReply(const QDBusPendingReply<QV
+     if (!reply.isError()) {
+         QList<ObexFileTransferEntry> items;
+         items.reserve(reply.value().size());
+-        const auto maps = reply.value();
+-        for (const QVariantMap &map : maps) {
++        Q_FOREACH (const QVariantMap &map, reply.value()) {
+             items.append(ObexFileTransferEntry(map));
+         }
+         m_value.append(QVariant::fromValue(items));
+diff --git a/src/rfkill.cpp b/src/rfkill.cpp
+index be8f90b..7bf8e52 100644
+--- a/src/rfkill.cpp
++++ b/src/rfkill.cpp
+@@ -210,8 +210,8 @@ void Rfkill::updateRfkillDevices()
+             break;
+ 
+         case RFKILL_OP_CHANGE_ALL:
+-            for (auto it = m_devices.begin(); it != m_devices.end(); ++it) {
+-                it.value() = getState(event);
++            Q_FOREACH (quint32 id, m_devices.keys()) {
++                m_devices[id] = getState(event);
+             }
+             break;
+ 
+@@ -223,7 +223,7 @@ void Rfkill::updateRfkillDevices()
+     // Update global state
+     m_state = Unknown;
+ 
+-    for (State state : qAsConst(m_devices)) {
++    Q_FOREACH (State state, m_devices) { // krazy:exclude=foreach
+         Q_ASSERT(state != Unknown);
+ 
+         if (m_state == Unknown) {
+diff --git a/src/utils.cpp b/src/utils.cpp
+index a9a64db..673302f 100644
+--- a/src/utils.cpp
++++ b/src/utils.cpp
+@@ -220,7 +220,7 @@ QStringList stringListToUpper(const QStringList &list)
+ {
+     QStringList converted;
+     converted.reserve(list.size());
+-    for (const QString &str : list) {
++    Q_FOREACH (const QString &str, list) {
+         converted.append(str.toUpper());
+     }
+     return converted;
+diff --git a/tests/devicereceiver.cpp b/tests/devicereceiver.cpp
+index 8ab745c..726d5ff 100644
+--- a/tests/devicereceiver.cpp
++++ b/tests/devicereceiver.cpp
+@@ -94,7 +94,7 @@ void DeviceReceiver::adapterAdded(const BluezQt::AdapterPtr &adapter)
+ static void stopDiscovering()
+ {
+     if (g_manager) {
+-        for (const AdapterPtr &adapter : g_manager->adapters()) {
++        Q_FOREACH (const AdapterPtr &adapter, g_manager->adapters()) {
+             adapter->stopDiscovery();
+         }
+     }
