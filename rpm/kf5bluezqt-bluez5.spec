@@ -30,7 +30,7 @@ Patch7:  0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
 Patch8:  0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
 Patch9:  0009-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
 Patch10: 0010-Build-with-Qt-5.6.patch
-#Patch11: 0011-Add-support-for-KeyboardDisplay-type-agents.patch
+Patch11: 0011-Add-support-for-KeyboardDisplay-type-agents.patch
 #Patch12: 0012-Revert-128038f1-Replace-Q_FOREACH-with-C++11.patch
 Patch13: 0013-Revert_6514345.patch
 Patch14: 0014-QString-SkipEmptyParts.patch
