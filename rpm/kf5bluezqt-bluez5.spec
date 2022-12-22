@@ -32,6 +32,7 @@ Patch4:  0004-Check-for-object-validity-in-macros.patch
 Patch10: 0010-Build-with-Qt-5.6.patch
 #Patch11: 0011-Add-support-for-KeyboardDisplay-type-agents.patch
 #Patch12: 0012-Revert-128038f1-Replace-Q_FOREACH-with-C++11.patch
+Patch13: 0013-Revert_6514345.patch
 
 %description
 This package contains the KF5BluezQt library.
