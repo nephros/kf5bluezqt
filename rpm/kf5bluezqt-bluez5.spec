@@ -26,8 +26,8 @@ Patch3:  0003-Add-Manager-pairWithDevice-QString-to-pair-with-unkn.patch
 Patch4:  0004-Check-for-object-validity-in-macros.patch
 Patch5:  0005-Don-t-connect-to-signals-with-QVariantMapMap-paramet.patch
 Patch6:  0006-Expose-adapter.connected-property.-Contributes-to-JB.patch
-#Patch7:  0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
-Patch8:  0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
+Patch7:  0007-Fix-crash-after-unloading-the-obex-manager.-Fixes-JB.patch
+#Patch8:  0008-Add-Manager-monitorObjectManagerInterfaces.-Contribu.patch
 Patch9:  0009-Add-filtering-options-to-DeclarativeDevicesModel.-Co.patch
 Patch10: 0010-Build-with-Qt-5.6.patch
 Patch11: 0011-Add-support-for-KeyboardDisplay-type-agents.patch
