@@ -1,6 +1,6 @@
 Name:       kf5bluezqt-bluez5
 Summary:    KF5BluezQt - Qt wrapper for BlueZ 5 DBus API
-Version:    5.60.0
+Version:    5.88.0
 Release:    1
 License:    LGPLv2
 URL:        https://github.com/sailfishos/kf5bluezqt
