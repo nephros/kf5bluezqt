@@ -1,5 +1,5 @@
 diff --git a/src/macros.h b/src/macros.h
-index 408646f..72c3b09 100644
+index 408646f..4432056 100644
 --- a/src/macros.h
 +++ b/src/macros.h
 @@ -15,21 +15,27 @@
@@ -9,7 +9,7 @@ index 408646f..72c3b09 100644
 -        Q_EMIT q.lock()->signal(var); \
 +        if (q.lock()) { \
 +            Q_EMIT q.lock()->signal(var); \
-+        }
++        } \
      }
  
  #define PROPERTY_CHANGED2(var, value, signal) \
@@ -19,7 +19,7 @@ index 408646f..72c3b09 100644
 -        Q_EMIT q.lock()->signal(var); \
 +        if (q.lock()) { \
 +            Q_EMIT q.lock()->signal(var); \
-+        }
++        } \
      }
  
  // Clears property value and emit propertyChanged signal
@@ -29,7 +29,7 @@ index 408646f..72c3b09 100644
 -        Q_EMIT q.lock()->signal(var); \
 +        if (q.lock()) { \
 +            Q_EMIT q.lock()->signal(var); \
-+        }
++        } \
      }
  
  #endif // BLUEZQT_MACROS_H
