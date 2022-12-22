@@ -1,5 +1,5 @@
 diff --git a/src/manager.cpp b/src/manager.cpp
-index eac5c7d..c6c97cc 100644
+index eac5c7d..21ae15f 100644
 --- a/src/manager.cpp
 +++ b/src/manager.cpp
 @@ -66,6 +66,20 @@ bool Manager::setBluetoothBlocked(bool blocked)
@@ -16,7 +16,7 @@ index eac5c7d..c6c97cc 100644
 +    if (d->m_monitorObjectManagerInterfaces != monitor) {
 +        d->m_monitorObjectManagerInterfaces = monitor;
 +        d->updateObjectManagerConnections();
-+        emit monitorObjectManagerInterfacesChanged(monitor);
++        Q_EMIT monitorObjectManagerInterfacesChanged(monitor);
 +    }
 +}
 +
