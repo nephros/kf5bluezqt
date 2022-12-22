@@ -53,7 +53,7 @@ index 4743fa4..f359f57 100644
      explicit Adapter(const QString &path, const QVariantMap &properties);
  
 diff --git a/src/adapter_p.cpp b/src/adapter_p.cpp
-index 32dc0c7..4a5dd39 100644
+index 32dc0c7..3ac9341 100644
 --- a/src/adapter_p.cpp
 +++ b/src/adapter_p.cpp
 @@ -27,6 +27,7 @@ AdapterPrivate::AdapterPrivate(const QString &path, const QVariantMap &propertie
@@ -64,7 +64,7 @@ index 32dc0c7..4a5dd39 100644
  {
      m_bluezAdapter = new BluezAdapter(Strings::orgBluez(), path, DBusConnection::orgBluez(), this);
  
-@@ -103,9 +104,13 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
+@@ -103,6 +104,8 @@ void AdapterPrivate::addDevice(const DevicePtr &device)
      m_devices.append(device);
      Q_EMIT q.lock()->deviceAdded(device);
  
@@ -73,11 +73,15 @@ index 32dc0c7..4a5dd39 100644
      connect(device.data(), &Device::deviceChanged, q.lock().data(), &Adapter::deviceChanged);
  }
  
+@@ -112,6 +115,8 @@ void AdapterPrivate::removeDevice(const DevicePtr &device)
+     Q_EMIT device->deviceRemoved(device);
+     Q_EMIT q.lock()->deviceRemoved(device);
+ 
 +    deviceConnectedChanged();
 +    disconnect(device.data(), &Device::connectedChanged, this, &AdapterPrivate::deviceConnectedChanged);
- void AdapterPrivate::removeDevice(const DevicePtr &device)
- {
-     m_devices.removeOne(device);
+     disconnect(device.data(), &Device::deviceChanged, q.lock().data(), &Adapter::deviceChanged);
+ }
+ 
 @@ -165,4 +170,20 @@ void AdapterPrivate::propertiesChanged(const QString &interface, const QVariantM
      Q_EMIT q.lock()->adapterChanged(q.toStrongRef());
  }
