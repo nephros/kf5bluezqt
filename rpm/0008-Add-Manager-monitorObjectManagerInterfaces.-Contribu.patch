@@ -1,5 +1,5 @@
 diff --git a/src/manager.cpp b/src/manager.cpp
-index b50d8f9..826840a 100644
+index eac5c7d..c6c97cc 100644
 --- a/src/manager.cpp
 +++ b/src/manager.cpp
 @@ -66,6 +66,20 @@ bool Manager::setBluetoothBlocked(bool blocked)
@@ -24,7 +24,7 @@ index b50d8f9..826840a 100644
  {
      return d->m_usableAdapter;
 diff --git a/src/manager.h b/src/manager.h
-index fbe4292..89b97be 100644
+index b28eacf..0fc7bbc 100644
 --- a/src/manager.h
 +++ b/src/manager.h
 @@ -82,6 +82,7 @@ class BLUEZQT_EXPORT Manager : public QObject
@@ -63,7 +63,7 @@ index fbe4292..89b97be 100644
      /**
       * Returns a usable adapter.
       *
-@@ -313,6 +335,11 @@ Q_SIGNALS:
+@@ -323,6 +345,11 @@ Q_SIGNALS:
       */
      void bluetoothBlockedChanged(bool blocked);
  
@@ -76,7 +76,7 @@ index fbe4292..89b97be 100644
       * Indicates that adapter was added.
       */
 diff --git a/src/manager_p.cpp b/src/manager_p.cpp
-index ca2248a..c6b6ef7 100644
+index e81077b..864b5a4 100644
 --- a/src/manager_p.cpp
 +++ b/src/manager_p.cpp
 @@ -29,6 +29,7 @@ ManagerPrivate::ManagerPrivate(Manager *parent)
@@ -87,11 +87,16 @@ index ca2248a..c6b6ef7 100644
  {
      qDBusRegisterMetaType<DBusManagerStruct>();
      qDBusRegisterMetaType<QVariantMapMap>();
-@@ -145,12 +146,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+@@ -145,17 +146,11 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
          return;
      }
  
--    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesAdded, this, &ManagerPrivate::interfacesAdded);
+-    DBusConnection::orgBluez().connect(Strings::orgBluez(),
+-                                       QStringLiteral("/"),
+-                                       QStringLiteral("org.freedesktop.DBus.ObjectManager"),
+-                                       QStringLiteral("InterfacesAdded"),
+-                                       this,
+-                                       SLOT(interfacesAddedSlot(QDBusObjectPath)));
 -    connect(m_dbusObjectManager, &DBusObjectManager::InterfacesRemoved, this, &ManagerPrivate::interfacesRemoved);
 -
      m_loaded = true;
@@ -102,7 +107,7 @@ index ca2248a..c6b6ef7 100644
      Q_EMIT q->operationalChanged(true);
  
      if (q->isBluetoothOperational()) {
-@@ -160,6 +160,40 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
+@@ -165,6 +160,40 @@ void ManagerPrivate::getManagedObjectsFinished(QDBusPendingCallWatcher *watcher)
      Q_EMIT initFinished();
  }
  
@@ -144,7 +149,7 @@ index ca2248a..c6b6ef7 100644
  {
      m_loaded = false;
 diff --git a/src/manager_p.h b/src/manager_p.h
-index e768ef3..7376ac7 100644
+index 63b778a..b1c5611 100644
 --- a/src/manager_p.h
 +++ b/src/manager_p.h
 @@ -61,6 +61,8 @@ public:
