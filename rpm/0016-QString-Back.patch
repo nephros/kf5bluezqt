@@ -1,0 +1,13 @@
+diff --git a/tools/bluezapi2qt/CppGenerator.cpp b/tools/bluezapi2qt/CppGenerator.cpp
+index 3723061..e8dbb91 100644
+--- a/tools/bluezapi2qt/CppGenerator.cpp
++++ b/tools/bluezapi2qt/CppGenerator.cpp
+@@ -186,7 +186,7 @@ QString CppGenerator::interfaceToClassName(const QString &interface)
+ {
+     const int index = interface.lastIndexOf(QRegularExpression(QStringLiteral("\\.[A-Z]\\w+"))) + 1;
+     auto className = interface.mid(index);
+-    while (className.back() > QLatin1Char('0') && className.back() <= QLatin1Char('9')) {
++    while (className.at(className.size() - 1) > QLatin1Char('0') && className.at(className.size() - 1) <= QLatin1Char('9')) {
+         className.remove(className.size() - 1, 1);
+     }
+ 
