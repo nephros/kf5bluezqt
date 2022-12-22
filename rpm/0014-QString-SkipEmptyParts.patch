@@ -1,0 +1,31 @@
+diff --git a/tools/bluezapi2qt/Methods.cpp b/tools/bluezapi2qt/Methods.cpp
+index 8d9dcc1..c065156 100644
+--- a/tools/bluezapi2qt/Methods.cpp
++++ b/tools/bluezapi2qt/Methods.cpp
+@@ -37,10 +37,10 @@ void Methods::parse(const QString &line)
+     if (match.hasMatch()) {
+         m_methods.emplace_back(Method());
+         m_currentMethod = &m_methods.back();
+-        m_currentMethod->m_outParameterStrings = match.captured(1).toLower().split(QStringLiteral(", "), Qt::SkipEmptyParts);
++        m_currentMethod->m_outParameterStrings = match.captured(1).toLower().split(QStringLiteral(", "), QString::SkipEmptyParts);
+         m_currentMethod->m_name = match.captured(2);
+-        m_currentMethod->m_inParameterStrings = match.captured(3).split(QStringLiteral(", "), Qt::SkipEmptyParts);
+-        m_currentMethod->m_stringTags = match.captured(4).toLower().split(QStringLiteral(", "), Qt::SkipEmptyParts);
++        m_currentMethod->m_inParameterStrings = match.captured(3).split(QStringLiteral(", "), QString::SkipEmptyParts);
++        m_currentMethod->m_stringTags = match.captured(4).toLower().split(QStringLiteral(", "), QString::SkipEmptyParts);
+         m_currentMethod->m_limitation = match.captured(5).toLower();
+     } else if (m_currentMethod) {
+         // Skip first empty line
+diff --git a/tools/bluezapi2qt/Properties.cpp b/tools/bluezapi2qt/Properties.cpp
+index 8fe05a0..7bf1d09 100644
+--- a/tools/bluezapi2qt/Properties.cpp
++++ b/tools/bluezapi2qt/Properties.cpp
+@@ -34,7 +34,7 @@ void Properties::parse(const QString &line)
+         m_currentProperty = &m_properties.back();
+         m_currentProperty->m_type = match.captured(1).toLower();
+         m_currentProperty->m_name = match.captured(2);
+-        m_currentProperty->m_stringTags = match.captured(3).toLower().split(QStringLiteral(", "), Qt::SkipEmptyParts);
++        m_currentProperty->m_stringTags = match.captured(3).toLower().split(QStringLiteral(", "), QString::SkipEmptyParts);
+         m_currentProperty->m_limitation = match.captured(4).toLower();
+     } else if (m_currentProperty) {
+         // Skip first empty line
