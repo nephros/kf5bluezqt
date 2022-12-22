@@ -12,7 +12,7 @@ BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  cmake
-BuildRequires:  extra-cmake-modules
+BuildRequires:  extra-cmake-modules >= 5.87.0
 BuildRequires:  doxygen
 
 Requires(post): /sbin/ldconfig
