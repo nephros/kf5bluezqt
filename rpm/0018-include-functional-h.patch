@@ -1,0 +1,12 @@
+diff --git a/src/gattcharacteristic.h b/src/gattcharacteristic.h
+index 62e399b..783931c 100644
+--- a/src/gattcharacteristic.h
++++ b/src/gattcharacteristic.h
+@@ -8,6 +8,7 @@
+ 
+ #pragma once
+ 
++#include <functional>
+ #include "bluezqt_export.h"
+ 
+ #include <QDBusObjectPath>
