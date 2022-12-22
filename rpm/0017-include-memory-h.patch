@@ -1,0 +1,12 @@
+diff --git a/src/gattcharacteristicremote.h b/src/gattcharacteristicremote.h
+index c1bad7c..78fe58c 100644
+--- a/src/gattcharacteristicremote.h
++++ b/src/gattcharacteristicremote.h
+@@ -9,6 +9,7 @@
+ #ifndef BLUEZQT_GATTCHARACTERISTICREMOTE_H
+ #define BLUEZQT_GATTCHARACTERISTICREMOTE_H
+ 
++#include <memory>
+ #include <QObject>
+ #include <QMap>
+ 

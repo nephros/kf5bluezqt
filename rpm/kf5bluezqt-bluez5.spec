@@ -36,6 +36,7 @@ Patch13: 0013-Revert_6514345.patch
 Patch14: 0014-QString-SkipEmptyParts.patch
 Patch15: 0015-QSharedPointer-nullptr.patch
 Patch16: 0016-QString-Back.patch
+Patch17: 0017-include-memory-h.patch
 
 %description
 This package contains the KF5BluezQt library.
