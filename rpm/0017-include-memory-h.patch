@@ -10,3 +10,27 @@ index c1bad7c..78fe58c 100644
  #include <QObject>
  #include <QMap>
  
+diff --git a/src/gattserviceremote.h b/src/gattserviceremote.h
+index e71e4ff..d8f444a 100644
+--- a/src/gattserviceremote.h
++++ b/src/gattserviceremote.h
+@@ -9,6 +9,7 @@
+ #ifndef BLUEZQT_GATTSERVICE_H
+ #define BLUEZQT_GATTSERVICE_H
+ 
++#include <memory>
+ #include <QObject>
+ #include <QMap>
+ #include <QDBusObjectPath>
+diff --git a/src/gattdescriptorremote.h b/src/gattdescriptorremote.h
+index 3782fff..69aa497 100644
+--- a/src/gattdescriptorremote.h
++++ b/src/gattdescriptorremote.h
+@@ -9,6 +9,7 @@
+ #ifndef BLUEZQT_GATTDESCRIPTORREMOTE_H
+ #define BLUEZQT_GATTDESCRIPTORREMOTE_H
+ 
++#include <memory>
+ #include <QObject>
+ #include <QMap>
+ 
