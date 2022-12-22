@@ -1,8 +1,50 @@
+diff --git a/src/device_p.cpp b/src/device_p.cpp
+index 15f6710..2ff7d1a 100644
+--- a/src/device_p.cpp
++++ b/src/device_p.cpp
+@@ -210,14 +210,14 @@ void DevicePrivate::removeGattService(const QString &gattServicePath)
+         return;
+     }
+ 
+-    GattServiceRemotePtr gattService = nullptr;
++    GattServiceRemotePtr gattService = QSharedPointer<BluezQt::GattServiceRemote>(nullptr);
+     for (int i=0; i < device->gattServices().size(); ++i) {
+         if (device->gattServices().at(i)->ubi() == gattServicePath) {
+             gattService = device->gattServices().at(i);
+         }
+     }
+ 
+-    if (gattService == nullptr) {
++    if (gattService == QSharedPointer<BluezQt::GattServiceRemote>(nullptr)) {
+         return;
+     }
+ 
+diff --git a/src/gattserviceremote_p.cpp b/src/gattserviceremote_p.cpp
+index 0a084cc..b424ced 100644
+--- a/src/gattserviceremote_p.cpp
++++ b/src/gattserviceremote_p.cpp
+@@ -128,14 +128,14 @@ void GattServiceRemotePrivate::removeGattCharacteristic(const QString &gattChara
+         return;
+     }
+ 
+-    GattCharacteristicRemotePtr gattCharacteristic = nullptr;
++    GattCharacteristicRemotePtr gattCharacteristic = QSharedPointer<BluezQt::GattCharacteristicRemote>(nullptr);
+     for (int i=0; i < service->characteristics().size(); ++i) {
+         if (service->characteristics().at(i)->ubi() == gattCharacteristicPath) {
+             gattCharacteristic = service->characteristics().at(i);
+         }
+     }
+ 
+-    if (gattCharacteristic == nullptr) {
++    if (gattCharacteristic == QSharedPointer<BluezQt::GattCharacteristicRemote>(nullptr)) {
+         return;
+     }
+ 
 diff --git a/src/manager.cpp b/src/manager.cpp
-index b50d8f9..5909c86 100644
+index 8308e59..3da5f6e 100644
 --- a/src/manager.cpp
 +++ b/src/manager.cpp
-@@ -230,7 +230,7 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
+@@ -247,7 +247,7 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
  #if BLUEZQT_BUILD_DEPRECATED_SINCE(5, 57)
  MediaPtr Manager::media() const
  {
@@ -10,4 +52,25 @@ index b50d8f9..5909c86 100644
 +    return usableAdapter() ? usableAdapter()->media() : QSharedPointer<BluezQt::Media>(nullptr);
  }
  #endif
+ 
+diff --git a/src/gattcharacteristicremote_p.cpp b/src/gattcharacteristicremote_p.cpp
+index 369ef95..ffdfa75 100644
+--- a/src/gattcharacteristicremote_p.cpp
++++ b/src/gattcharacteristicremote_p.cpp
+@@ -120,14 +120,14 @@ void GattCharacteristicRemotePrivate::removeGattDescriptor(const QString &gattDe
+         return;
+     }
+ 
+-    GattDescriptorRemotePtr gattDescriptor = nullptr;
++    GattDescriptorRemotePtr gattDescriptor = QSharedPointer<BluezQt::GattDescriptorRemote>(nullptr);
+     for (int i=0; i < characteristic->descriptors().size(); ++i) {
+         if (characteristic->descriptors().at(i)->ubi() == gattDescriptorPath) {
+             gattDescriptor = characteristic->descriptors().at(i);
+         }
+     }
+ 
+-    if (gattDescriptor == nullptr) {
++    if (gattDescriptor == QSharedPointer<BluezQt::GattDescriptorRemote>(nullptr)) {
+         return;
+     }
  
