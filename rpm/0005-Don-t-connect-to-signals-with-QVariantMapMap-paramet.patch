@@ -1,5 +1,5 @@
 diff --git a/src/device_p.cpp b/src/device_p.cpp
-index 7fd1ce0..46d5c4f 100644
+index 7fd1ce0..15f6710 100644
 --- a/src/device_p.cpp
 +++ b/src/device_p.cpp
 @@ -106,17 +106,17 @@ void DevicePrivate::interfacesAdded(const QString &path, const QVariantMapMap &i
@@ -7,7 +7,7 @@ index 7fd1ce0..46d5c4f 100644
              Q_EMIT q.lock()->batteryChanged(m_battery);
              changed = true;
 -        } else if (it.key() == Strings::orgBluezInput1()) {
-+        } else if (it.key() == Strings::orgBluezInput1( && !m_input)) {
++        } else if (it.key() == Strings::orgBluezInput1() && !m_input) {
              m_input = InputPtr(new Input(path, it.value()));
              m_input->d->q = m_input.toWeakRef();
              Q_EMIT q.lock()->inputChanged(m_input);
@@ -98,6 +98,19 @@ index ca2248a..e81077b 100644
      AdapterPtr adapter = m_adapters.value(properties.value(QStringLiteral("Adapter")).value<QDBusObjectPath>().path());
      if (!adapter) {
          return;
+diff --git a/src/manager_p.h b/src/manager_p.h
+index e768ef3..63b778a 100644
+--- a/src/manager_p.h
++++ b/src/manager_p.h
+@@ -84,6 +84,8 @@ Q_SIGNALS:
+ private Q_SLOTS:
+     void propertiesChanged(const QString &interface, const QVariantMap &changed, const QStringList &invalidated);
+     void dummy();
++    void interfacesAddedSlot(const QDBusObjectPath &objectPath);
++    void getInterfacesManagedObjectsFinished(QDBusPendingCallWatcher *watcher);
+ };
+ 
+ } // namespace BluezQt
 diff --git a/src/obexmanager_p.cpp b/src/obexmanager_p.cpp
 index 481582c..4be0d15 100644
 --- a/src/obexmanager_p.cpp
