@@ -1,20 +1,9 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Bea Lam <bea.lam@jollamobile.com>
-Date: Thu, 10 Nov 2016 17:16:39 +1000
-Subject: [PATCH] Add Manager::pairWithDevice(QString) to pair with unknown
- devices. Contributes to JB#36678
-
----
- src/manager.cpp |  9 +++++++++
- src/manager.h   | 10 ++++++++++
- 2 files changed, 19 insertions(+)
-
 diff --git a/src/manager.cpp b/src/manager.cpp
-index 4bd0068..38146c2 100644
+index b50d8f9..eac5c7d 100644
 --- a/src/manager.cpp
 +++ b/src/manager.cpp
-@@ -246,4 +246,13 @@ PendingCall *Manager::unregisterProfile(Profile *profile)
-                            PendingCall::ReturnVoid, this);
+@@ -239,4 +239,13 @@ Rfkill *Manager::rfkill() const
+     return d->m_rfkill;
  }
  
 +PendingCall *Manager::pairWithDevice(const QString &address)
@@ -28,12 +17,12 @@ index 4bd0068..38146c2 100644
 +
  } // namespace BluezQt
 diff --git a/src/manager.h b/src/manager.h
-index b33719a..6860882 100644
+index fbe4292..b28eacf 100644
 --- a/src/manager.h
 +++ b/src/manager.h
 @@ -297,6 +297,16 @@ public:
-      */
-     PendingCall *unregisterProfile(Profile *profile);
+ 
+     Rfkill *rfkill() const;
  
 +    /**
 +     * Pairs with a device.
